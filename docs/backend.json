@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the AssetFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Asset": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Asset",
+      "type": "object",
+      "description": "Represents an asset or item in the inventory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the asset."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the asset."
+        },
+        "codeId": {
+          "type": "string",
+          "description": "Code or ID associated with the asset."
+        },
+        "location": {
+          "type": "string",
+          "description": "City or location where the asset is stored."
+        },
+        "value": {
+          "type": "number",
+          "description": "Value of the asset."
+        },
+        "observation": {
+          "type": "string",
+          "description": "Additional notes or observations about the asset."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Asset)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "codeId",
+        "location",
+        "value",
+        "userId"
+      ]
+    },
+    "Anomaly": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Anomaly",
+      "type": "object",
+      "description": "Represents a detected anomaly in an asset's data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the anomaly."
+        },
+        "assetId": {
+          "type": "string",
+          "description": "Reference to Asset. (Relationship: Asset 1:N Anomaly)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of anomaly detected (e.g., value change, location change)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the anomaly and potential reasons."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the anomaly was detected.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "assetId",
+        "type",
+        "description",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  The 'userId' parameter corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/assets/{assetId}",
+        "definition": {
+          "entityName": "Asset",
+          "schema": {
+            "$ref": "#/backend/entities/Asset"
+          },
+          "description": "Stores asset information for each user. The 'userId' parameter corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
+            },
+            {
+              "name": "assetId",
+              "description": "The unique identifier for the asset."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/assets/{assetId}/anomalies/{anomalyId}",
+        "definition": {
+          "entityName": "Anomaly",
+          "schema": {
+            "$ref": "#/backend/entities/Anomaly"
+          },
+          "description": "Stores anomaly data for each asset. The 'userId' parameter corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
+            },
+            {
+              "name": "assetId",
+              "description": "The unique identifier for the asset."
+            },
+            {
+              "name": "anomalyId",
+              "description": "The unique identifier for the anomaly."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage assets and detect anomalies, focusing on user-specific data and straightforward security rules. It uses path-based ownership for assets and anomalies to simplify access control. Denormalization is not strictly required here because there's no collaborative data or complex role-based access beyond ownership. Each user has their own assets, and each asset has its own anomalies. This naturally segregates data, simplifying queries and security rules.\n\nAssets are stored under `/users/{userId}/assets/{assetId}`, establishing clear ownership. Anomaly documents are stored under `/users/{userId}/assets/{assetId}/anomalies/{anomalyId}` enabling to query all anomalies for an asset, or all assets for an user.\n\nThis design prioritizes security by ensuring all data access is scoped to the user's ID, avoiding the need for complex rules or `get()` operations. List operations are secure because data is segregated by user ID."
+  }
+}
