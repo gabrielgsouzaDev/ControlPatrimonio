@@ -126,9 +126,9 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
   const handleDelete = () => {
     if (dialogState?.type === "delete" && user && firestore) {
-      startTransition(async () => {
+      startTransition(() => {
         try {
-          await deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
+          deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
           setDialogState(null);
           toast({ title: "Sucesso", description: "Item excluído com sucesso." });
         } catch(error: any) {

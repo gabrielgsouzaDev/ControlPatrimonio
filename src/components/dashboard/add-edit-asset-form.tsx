@@ -63,17 +63,21 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
         return;
     }
 
-    startTransition(async () => {
+    startTransition(() => {
         try {
             if (asset) {
-                await updateAsset(firestore, user.uid, user.displayName || "Usuário", asset.id, data);
+                // updateAsset is async but we don't await it here to make it non-blocking
+                updateAsset(firestore, user.uid, user.displayName || "Usuário", asset.id, data);
             } else {
-                await addAsset(firestore, user.uid, user.displayName || "Usuário", data);
+                // addAsset is non-blocking
+                addAsset(firestore, user.uid, user.displayName || "Usuário", data);
             }
             const successMessage = asset ? "Item atualizado com sucesso." : "Item adicionado com sucesso.";
             toast({ title: "Sucesso", description: successMessage });
             onSubmitSuccess();
         } catch (error: any) {
+            // This catch block may not be hit for permission errors due to the non-blocking nature.
+            // Permission errors are handled globally by the FirebaseErrorListener.
             console.error("Error submitting asset form:", error);
             toast({ variant: "destructive", title: "Erro ao Salvar", description: error.message || "Não foi possível salvar o item."});
         }

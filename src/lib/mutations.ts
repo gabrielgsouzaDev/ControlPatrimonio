@@ -9,6 +9,8 @@ import {
     Firestore
 } from "firebase/firestore";
 import type { AssetFormValues } from "@/components/dashboard/add-edit-asset-form";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 /**
  * Adds a new asset and a corresponding history log to Firestore.
@@ -17,7 +19,7 @@ import type { AssetFormValues } from "@/components/dashboard/add-edit-asset-form
  * @param userDisplayName - The display name of the current user.
  * @param assetData - The asset data from the form.
  */
-export async function addAsset(
+export function addAsset(
     firestore: Firestore, 
     userId: string, 
     userDisplayName: string, 
@@ -27,12 +29,13 @@ export async function addAsset(
 
     // 1. Create a new asset document
     const assetRef = doc(collection(firestore, 'users', userId, 'assets'));
-    batch.set(assetRef, { 
+    const assetPayload = { 
         ...assetData, 
         userId, 
         createdAt: serverTimestamp(), 
         updatedAt: serverTimestamp() 
-    });
+    };
+    batch.set(assetRef, assetPayload);
 
     // 2. Create a new history log for the asset creation
     const historyRef = doc(collection(firestore, 'users', userId, 'history'));
@@ -40,7 +43,7 @@ export async function addAsset(
         assetId: assetRef.id,
         assetName: assetData.name,
         codeId: assetData.codeId,
-        action: "Criado",
+        action: "Criado" as const,
         details: "Item novo adicionado ao inventário.",
         userId: userId,
         userDisplayName: userDisplayName,
@@ -48,7 +51,27 @@ export async function addAsset(
     };
     batch.set(historyRef, historyLog);
 
-    await batch.commit();
+    // NON-BLOCKING: commit and handle permission errors
+    batch.commit().catch((error) => {
+        console.log("Caught error in addAsset", error);
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: assetRef.path,
+              operation: 'create',
+              requestResourceData: assetPayload,
+            })
+        );
+         // Also emit for history log write if needed, but asset is primary
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: historyRef.path,
+              operation: 'create',
+              requestResourceData: historyLog,
+            })
+        );
+    });
 }
 
 /**
@@ -66,32 +89,35 @@ export async function updateAsset(
     assetId: string, 
     assetData: AssetFormValues
 ) {
-    const batch = writeBatch(firestore);
-    
-    // 1. Get the old asset data to compare for history log
     const assetRef = doc(firestore, 'users', userId, 'assets', assetId);
+    
+    // Get old data first to calculate diff for history
     const oldAssetSnap = await getDoc(assetRef);
+    if (!oldAssetSnap.exists()) {
+        throw new Error("O patrimônio que você está tentando editar não existe.");
+    }
     const oldAssetData = oldAssetSnap.data();
 
-    // 2. Update the asset document
-    batch.update(assetRef, { ...assetData, updatedAt: serverTimestamp() });
+    const batch = writeBatch(firestore);
+
+    // 1. Update the asset document
+    const assetPayload = { ...assetData, updatedAt: serverTimestamp() };
+    batch.update(assetRef, assetPayload);
     
-    // 3. Create a history log based on the changes
+    // 2. Create a history log based on the changes
     const changes: string[] = [];
-    if (oldAssetData) {
-        (Object.keys(assetData) as Array<keyof AssetFormValues>).forEach(key => {
-            if (oldAssetData[key] !== assetData[key]) {
-                changes.push(`${key} alterado de '${oldAssetData[key]}' para '${assetData[key]}'`);
-            }
-        });
-    }
+    (Object.keys(assetData) as Array<keyof AssetFormValues>).forEach(key => {
+        if (oldAssetData[key] !== undefined && oldAssetData[key] !== assetData[key]) {
+            changes.push(`${key} alterado de '${oldAssetData[key]}' para '${assetData[key]}'`);
+        }
+    });
 
     const historyRef = doc(collection(firestore, 'users', userId, 'history'));
     const historyLog = {
         assetId: assetId,
         assetName: assetData.name,
         codeId: assetData.codeId,
-        action: "Atualizado",
+        action: "Atualizado" as const,
         details: changes.length > 0 ? changes.join(', ') : "Nenhuma alteração registrada nos campos.",
         userId: userId,
         userDisplayName: userDisplayName,
@@ -99,7 +125,25 @@ export async function updateAsset(
     };
     batch.set(historyRef, historyLog);
 
-    await batch.commit();
+    // NON-BLOCKING: commit and handle permission errors
+    batch.commit().catch((error) => {
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: assetRef.path,
+              operation: 'update',
+              requestResourceData: assetPayload,
+            })
+        );
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: historyRef.path,
+              operation: 'create',
+              requestResourceData: historyLog,
+            })
+        );
+    });
 }
 
 /**
@@ -115,26 +159,27 @@ export async function deleteAsset(
     userDisplayName: string, 
     assetId: string
 ) {
-    const batch = writeBatch(firestore);
-
-    // 1. Get the asset data before deleting for the history log
     const assetRef = doc(firestore, 'users', userId, 'assets', assetId);
+
+    // Get the asset data before deleting for the history log
     const assetDoc = await getDoc(assetRef);
     if (!assetDoc.exists()) {
         throw new Error("Patrimônio não encontrado.");
     }
     const assetData = assetDoc.data();
 
-    // 2. Delete the asset document
+    const batch = writeBatch(firestore);
+    
+    // 1. Delete the asset document
     batch.delete(assetRef);
     
-    // 3. Create a history log for the deletion
+    // 2. Create a history log for the deletion
     const historyRef = doc(collection(firestore, 'users', userId, 'history'));
     const historyLog = {
         assetId: assetId,
         assetName: assetData.name,
         codeId: assetData.codeId,
-        action: "Excluído",
+        action: "Excluído" as const,
         details: "Item foi removido do inventário.",
         userId: userId,
         userDisplayName: userDisplayName,
@@ -142,5 +187,22 @@ export async function deleteAsset(
     };
     batch.set(historyRef, historyLog);
     
-    await batch.commit();
+    // NON-BLOCKING: commit and handle permission errors
+    batch.commit().catch((error) => {
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: assetRef.path,
+              operation: 'delete',
+            })
+        );
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: historyRef.path,
+              operation: 'create',
+              requestResourceData: historyLog,
+            })
+        );
+    });
 }
