@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Building2, LogOut, Settings, Landmark, LayoutDashboard, History } from 'lucide-react';
+import { Building2, LogOut, Settings, Landmark, LayoutDashboard, History, Loader2, User as UserIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useAuth, useUser } from '@/firebase';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function DashboardLayout({
   children,
@@ -34,11 +36,33 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogout = async () => {
     setShowLogoutConfirm(false);
+    await auth.signOut();
     router.push('/');
+  };
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
   return (
@@ -93,6 +117,17 @@ export default function DashboardLayout({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+           <div className="border-t border-sidebar-border -mx-2 my-2" />
+           <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
+              <Avatar className="size-9">
+                <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
+                <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
+                  <p className="font-medium truncate text-sm">{user.displayName ?? 'Usuário'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

@@ -6,20 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Landmark, Loader2 } from 'lucide-react';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useState, useEffect } from 'react';
 import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
+  createUserWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
@@ -30,35 +33,29 @@ export default function LoginPage() {
     }
   }, [auth.currentUser, router]);
 
-  const handleLogin = async () => {
+  const handleSignUp = async () => {
     setIsPending(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: name });
+      
+      const userProfile = {
+        id: user.uid,
+        name: name,
+        email: user.email,
+      };
+      
+      await setDoc(doc(firestore, 'users', user.uid), userProfile);
+
       router.push('/dashboard');
     } catch (error: any) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Erro de Login',
-        description: 'Credenciais inválidas. Por favor, verifique seu email e senha.',
-      });
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsPending(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error(error);
-       toast({
-        variant: 'destructive',
-        title: 'Erro de Login com Google',
-        description: 'Não foi possível fazer login com o Google. Tente novamente.',
+        title: 'Erro no Cadastro',
+        description: error.message || 'Não foi possível criar a conta. Tente novamente.',
       });
     } finally {
       setIsPending(false);
@@ -72,13 +69,24 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <Landmark className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao Patrimonio</CardTitle>
+          <CardTitle className="text-2xl font-headline text-center">Criar uma conta</CardTitle>
           <CardDescription className="text-center">
-            Faça login para gerenciar seu patrimônio
+            Insira seus dados para se cadastrar
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input 
+                id="name" 
+                placeholder="Seu Nome" 
+                required 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isPending}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -92,9 +100,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Senha</Label>
-              </div>
+              <Label htmlFor="password">Senha</Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -104,22 +110,14 @@ export default function LoginPage() {
                 disabled={isPending}
               />
             </div>
-            <Button onClick={handleLogin} className="w-full" disabled={isPending}>
+            <Button onClick={handleSignUp} className="w-full" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar
-            </Button>
-            <Button variant="outline" onClick={handleGoogleSignIn} className="w-full" disabled={isPending}>
-              {isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.3 512 0 398.5 0 256S111.3 0 244 0c69.8 0 130.8 28.5 173.4 74.2L346.8 169.3c-24.3-23.2-57.2-37.4-92.8-37.4-70.3 0-127.5 57.2-127.5 127.5s57.2 127.5 127.5 127.5c80.3 0 113.8-61.5 116.5-91.2H244v-83.8h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-              )}
-              Entrar com Google
+              Cadastrar
             </Button>
             <div className="mt-4 text-center text-sm">
-              Não tem uma conta?{' '}
-              <Link href="/signup" className="underline">
-                Cadastre-se
+              Já tem uma conta?{' '}
+              <Link href="/" className="underline">
+                Faça login
               </Link>
             </div>
           </div>
