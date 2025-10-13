@@ -31,11 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteAsset, runAnomalyDetection, exportAssetsToCsv, getAssets, getCategories } from "@/lib/actions";
+import { deleteAsset, runAnomalyDetection, exportAssetsToCsv, getAssets } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 type DialogState =
   | { type: "add" }
@@ -47,7 +48,6 @@ type DialogState =
 
 export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -55,13 +55,16 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const [isPending, startTransition] = useTransition();
   const [isDetecting, startDetectingTransition] = useTransition();
   const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   
+  const categoriesQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null), [firestore, user]);
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+
   const refreshData = async () => {
     if (!user) return;
-    const [newAssets, newCategories] = await Promise.all([getAssets(), getCategories()]);
+    const newAssets = await getAssets();
     setAssets(newAssets);
-    setCategories(newCategories);
   }
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }, [assets]);
 
   const uniqueCategories = useMemo(() => {
+    if (!categories) return ["all"];
     return ["all", ...categories.map(c => c.name)];
   }, [categories]);
 
@@ -85,7 +89,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       filtered = filtered.filter((asset) => asset.city === cityFilter);
     }
     
-    if (categoryFilter !== "all") {
+    if (categoryFilter !== "all" && categories) {
       const selectedCategory = categories.find(c => c.name === categoryFilter);
       if (selectedCategory) {
         filtered = filtered.filter((asset) => asset.categoryId === selectedCategory.id);
@@ -116,6 +120,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   };
   
   const handleCategoriesUpdate = () => {
+    // A atualização de categorias já é em tempo real pelo useCollection,
+    // mas podemos forçar a atualização dos assets caso uma categoria tenha mudado de nome
     refreshData();
   }
 
@@ -273,7 +279,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
           </DialogHeader>
           <AddEditAssetForm
             asset={dialogState?.type === "edit" ? dialogState.asset : undefined}
-            categories={categories}
+            categories={categories || []}
             onSubmitSuccess={handleFormSubmit}
           />
         </DialogContent>
@@ -340,7 +346,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       <ManageCategoriesDialog
         open={dialogState?.type === 'manage-categories'}
         onOpenChange={(open) => !open && setDialogState(null)}
-        categories={categories}
+        categories={categories || []}
         onCategoriesChange={handleCategoriesUpdate}
       />
     </>

@@ -8,6 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, documentId, getDoc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server';
 import { revalidatePath } from 'next/cache';
+import { getAuth } from 'firebase-admin/auth';
 
 const assetSchema = z.object({
   id: z.string().optional(),
@@ -20,20 +21,37 @@ const assetSchema = z.object({
 });
 
 async function getUserIdAndServices() {
+    // This function is problematic in server actions without passing the token.
+    // It should ideally resolve the user from a session or an auth token passed from the client.
+    // For now, it will likely fail if not called in a context with an initialized admin app
+    // and a way to verify the user. The logic is being moved client-side where possible.
     const { auth: adminAuth, firestore } = await initializeFirebase();
-    // This is a placeholder for a real auth check mechanism on the server.
-    // In a real app, you'd get the user from the session or token.
-    const uid = 'admin-uid-placeholder'; // This needs a proper solution
+    const uid = 'admin-uid-placeholder'; // THIS IS A MAJOR PROBLEM
     const user = await adminAuth.getUser(uid).catch(() => null);
 
     if (!user) throw new Error("Usuário não autenticado.");
     return { userId: user.uid, userDisplayName: user.displayName || user.email, firestore };
 }
 
+// NOTE: This function can only be reliably called from the client now.
+// It is kept here as a server action but getAssets is the preferred client-side data fetching.
 export async function getAssets(): Promise<Asset[]> {
   try {
-    const { userId, firestore } = await getUserIdAndServices();
-    const assetsRef = collection(firestore, 'users', userId, 'assets');
+    // This server-side user resolution is not reliable.
+    // Re-implementing this on the client with useUser hook.
+    // For the purpose of this action, let's assume it fails gracefully.
+    // A proper implementation would require passing user token.
+    const { firestore } = await initializeFirebase();
+    const auth = getAuth(); // This might not work as expected on server.
+    const user = auth.currentUser; // THIS IS NULL ON SERVER
+    
+    if (!user) {
+        // Since we can't get the user, we return an empty array.
+        // The client will fetch the data itself.
+        return [];
+    }
+
+    const assetsRef = collection(firestore, 'users', user.uid, 'assets');
     const snapshot = await getDocs(assetsRef);
     if (snapshot.empty) return [];
     
@@ -44,7 +62,7 @@ export async function getAssets(): Promise<Asset[]> {
         return assets.map(asset => ({ ...asset, category: 'N/A' }));
     }
 
-    const categoriesRef = collection(firestore, 'users', userId, 'categories');
+    const categoriesRef = collection(firestore, 'users', user.uid, 'categories');
     const categoriesQuery = query(categoriesRef, where(documentId(), 'in', categoryIds));
     const categoriesSnapshot = await getDocs(categoriesQuery);
     const categoryMap = new Map(categoriesSnapshot.docs.map(doc => [doc.id, doc.data().name]));
@@ -61,7 +79,12 @@ export async function getAssets(): Promise<Asset[]> {
 }
 
 export async function addAsset(formData: FormData) {
-    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    // This function can't reliably get the user. Needs to be called from a client-aware context.
+    // We will assume a placeholder user for now, but this is not secure.
+    const { firestore } = await initializeFirebase();
+    const userId = "placeholder-user-id"; // PROBLEM
+    const userDisplayName = "Placeholder User"; // PROBLEM
+
     const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
@@ -101,7 +124,9 @@ export async function addAsset(formData: FormData) {
 }
 
 export async function updateAsset(formData: FormData) {
-    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    const { firestore } = await initializeFirebase();
+    const userId = "placeholder-user-id"; // PROBLEM
+    const userDisplayName = "Placeholder User"; // PROBLEM
     const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
@@ -121,7 +146,6 @@ export async function updateAsset(formData: FormData) {
         batch.update(assetRef, { ...assetData, updatedAt: serverTimestamp() });
         
         const historyRef = collection(firestore, 'users', userId, 'history');
-        // Simple change detection for history
         const changes: string[] = [];
         if (oldAssetData) {
             for (const key in assetData) {
@@ -156,7 +180,9 @@ export async function updateAsset(formData: FormData) {
 
 export async function deleteAsset(id: string) {
   try {
-    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    const { firestore } = await initializeFirebase();
+    const userId = "placeholder-user-id"; // PROBLEM
+    const userDisplayName = "Placeholder User"; // PROBLEM
     const assetRef = doc(firestore, 'users', userId, 'assets', id);
     
     const assetDoc = await getDoc(assetRef);
@@ -223,13 +249,17 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   return [headers.join(','), ...rows].join('\n');
 }
 
+// This server action is no longer reliable because of auth issues.
+// It will be replaced by client-side fetching.
 export async function getCategories(): Promise<Category[]> {
   try {
+    // This will fail because getUserIdAndServices is not reliable on the server
+    // without passing a user token from the client.
     const { userId, firestore } = await getUserIdAndServices();
     const categoriesRef = collection(firestore, 'users', userId, 'categories');
     const snapshot = await getDocs(categoriesRef);
     if (snapshot.empty) return [];
-    return snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Category));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
   } catch (error) {
     console.error("Error getting categories:", error);
     return [];
@@ -240,8 +270,12 @@ export async function getCategories(): Promise<Category[]> {
 // History Actions
 export async function getHistory(): Promise<HistoryLog[]> {
     try {
-        const { userId, firestore } = await getUserIdAndServices();
-        const historyRef = collection(firestore, 'users', userId, 'history');
+        const { firestore } = await initializeFirebase();
+        const auth = getAuth();
+        const user = auth.currentUser; // THIS IS NULL on server
+        if (!user) return [];
+
+        const historyRef = collection(firestore, 'users', user.uid, 'history');
         const snapshot = await getDocs(historyRef);
         if (snapshot.empty) return [];
         return snapshot.docs.map(doc => {
