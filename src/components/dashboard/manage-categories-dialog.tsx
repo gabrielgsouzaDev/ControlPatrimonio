@@ -47,7 +47,7 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
     }
     startTransition(async () => {
       try {
-        const categoriesRef = collection(firestore, 'users', user.uid, 'categories');
+        const categoriesRef = collection(firestore, 'categories');
         await addDoc(categoriesRef, { name: newCategoryName, userId: user.uid, createdAt: serverTimestamp() });
         setNewCategoryName("");
         onCategoriesChange();
@@ -66,8 +66,8 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
     }
     startTransition(async () => {
       try {
-        const categoryRef = doc(firestore, 'users', user.uid, 'categories', id);
-        await updateDoc(categoryRef, { name: editingCategoryName });
+        const categoryRef = doc(firestore, 'categories', id);
+        await updateDoc(categoryRef, { name: editingCategoryName, userId: user.uid });
         setEditingCategoryId(null);
         setEditingCategoryName("");
         onCategoriesChange();
@@ -84,14 +84,15 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
         try {
             const batch = writeBatch(firestore);
             
-            const assetsRef = collection(firestore, 'users', user.uid, 'assets');
+            const assetsRef = collection(firestore, 'assets');
             const q = query(assetsRef, where("categoryId", "==", id));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
+              // Unset the categoryId field from assets
               batch.update(doc.ref, { categoryId: "" });
             });
 
-            const categoryRef = doc(firestore, 'users', user.uid, 'categories', id);
+            const categoryRef = doc(firestore, 'categories', id);
             batch.delete(categoryRef);
 
             await batch.commit();

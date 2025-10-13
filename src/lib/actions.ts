@@ -5,49 +5,9 @@ import { z } from 'zod';
 import type { Asset, Anomaly, Category, HistoryLog } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getFirestore, collection, getDocs, doc, writeBatch, serverTimestamp, query, where, documentId, getDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server';
-import { revalidatePath } from 'next/cache';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { getAuth } from 'firebase/auth'; // client auth
 
-// This is now only used for client-side fetching within a client component context
-export async function getAssets(): Promise<Asset[]> {
-  try {
-    const { firestore } = await initializeFirebase();
-    const auth = getAuth(); // This will not work reliably on the server.
-    const user = auth.currentUser;
-    
-    if (!user) {
-        return [];
-    }
-
-    const assetsRef = collection(firestore, 'users', user.uid, 'assets');
-    const snapshot = await getDocs(assetsRef);
-    if (snapshot.empty) return [];
-    
-    const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Asset));
-    
-    const categoryIds = [...new Set(assets.map(asset => asset.categoryId).filter(Boolean))];
-    if (categoryIds.length === 0) {
-        return assets.map(asset => ({ ...asset, category: 'N/A' }));
-    }
-
-    const categoriesRef = collection(firestore, 'users', user.uid, 'categories');
-    const categoriesQuery = query(categoriesRef, where(documentId(), 'in', categoryIds));
-    const categoriesSnapshot = await getDocs(categoriesQuery);
-    const categoryMap = new Map(categoriesSnapshot.docs.map(doc => [doc.id, doc.data().name]));
-
-    return assets.map(asset => ({
-      ...asset,
-      category: categoryMap.get(asset.categoryId) || 'N/A'
-    }));
-
-  } catch (error) {
-    console.error("Error getting assets:", error);
-    return [];
-  }
-}
+// This file is now for server-side actions that do not depend on user context from the client,
+// like AI operations or data exports based on provided data.
 
 export async function runAnomalyDetection(assets: Asset[]): Promise<Anomaly[]> {
   try {
@@ -61,15 +21,10 @@ export async function runAnomalyDetection(assets: Asset[]): Promise<Anomaly[]> {
     }));
     const result = await detectAssetAnomalies({ items: itemsToAnalyze });
     
-    // Map anomalies back to full anomaly object
-    const { firestore } = await initializeFirebase();
-    const adminAuth = getAdminAuth();
-    // This is problematic. The user should be determined from a token.
-    // For now, we can't save anomalies this way. We will just return them.
-    // A proper implementation requires passing user context.
-    const anomaliesWithUserId: Anomaly[] = result.anomalies.map(a => ({...a, id: '', assetId: '', userId: ''}));
+    // Anomalies are just returned to the client, not saved to DB from here.
+    const anomalies: Anomaly[] = result.anomalies.map(a => ({...a, id: '', assetId: ''}));
     
-    return anomaliesWithUserId;
+    return anomalies;
   } catch (error) {
     console.error('Error detecting anomalies:', error);
     throw new Error('Falha ao detectar anomalias.');
@@ -95,30 +50,6 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   );
 
   return [headers.join(','), ...rows].join('\n');
-}
-
-export async function getHistory(): Promise<HistoryLog[]> {
-    try {
-        const { firestore } = await initializeFirebase();
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (!user) return [];
-
-        const historyRef = collection(firestore, 'users', user.uid, 'history');
-        const snapshot = await getDocs(historyRef);
-        if (snapshot.empty) return [];
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                timestamp: data.timestamp.toDate() 
-            } as HistoryLog;
-        });
-    } catch (error) {
-        console.error("Error getting history:", error);
-        return [];
-    }
 }
 
 export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string> {

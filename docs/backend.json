@@ -26,7 +26,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Asset",
       "type": "object",
-      "description": "Represents an asset or item in the inventory.",
+      "description": "Represents a shared asset or item in the inventory.",
       "properties": {
         "id": {
           "type": "string",
@@ -54,7 +54,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "ID of the user who owns this asset."
+          "description": "ID of the user who last created or modified this asset."
         },
         "categoryId": {
             "type": "string",
@@ -67,7 +67,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a category for assets.",
+      "description": "Represents a shared category for assets.",
       "properties": {
         "id": {
           "type": "string",
@@ -88,7 +88,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "History Log",
         "type": "object",
-        "description": "Represents a log entry for a change made to an asset.",
+        "description": "Represents a global log entry for a change made to an asset.",
         "properties": {
             "id": {
                 "type": "string",
@@ -175,41 +175,21 @@
           "schema": {
             "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores user profiles. The 'userId' corresponds to the Firebase Auth UID."
+          "description": "Stores individual user profiles."
         }
       },
       {
-        "path": "/users/{userId}/assets/{assetId}",
+        "path": "/assets/{assetId}",
         "definition": {
           "entityName": "Asset",
           "schema": {
             "$ref": "#/entities/Asset"
           },
-          "description": "Stores asset information for each user."
+          "description": "Stores the global list of all assets."
         }
       },
       {
-        "path": "/users/{userId}/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/entities/Category"
-          },
-          "description": "Stores asset categories created by each user."
-        }
-      },
-      {
-        "path": "/users/{userId}/history/{historyId}",
-        "definition": {
-          "entityName": "HistoryLog",
-          "schema": {
-            "$ref": "#/entities/HistoryLog"
-          },
-          "description": "Stores change history logs for each user's assets."
-        }
-      },
-      {
-        "path": "/users/{userId}/assets/{assetId}/anomalies/{anomalyId}",
+        "path": "/assets/{assetId}/anomalies/{anomalyId}",
         "definition": {
             "entityName": "Anomaly",
             "schema": {
@@ -217,8 +197,28 @@
             },
             "description": "Stores anomalies detected for a specific asset."
         }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/entities/Category"
+          },
+          "description": "Stores the global list of asset categories."
+        }
+      },
+      {
+        "path": "/history/{historyId}",
+        "definition": {
+          "entityName": "HistoryLog",
+          "schema": {
+            "$ref": "#/entities/HistoryLog"
+          },
+          "description": "Stores the global change history for all assets."
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be user-centric, ensuring data privacy and security by nesting all user-generated content (assets, categories, history) under their unique user ID. This path-based ownership model (`/users/{userId}/...`) is fundamental for writing simple and effective security rules, as it allows us to easily grant access based on the authenticated user's UID. This design prevents data leakage between users and simplifies queries, as we can fetch all data for a specific user from a predictable root path."
+    "reasoning": "The Firestore structure is designed to be global and shared. All core data collections (assets, categories, history) are at the root level, allowing any authenticated user to access them. User-specific data, like profiles, is stored under the /users/{userId} path to maintain privacy for account settings. This model supports a collaborative environment where all users work on a single, unified dataset."
   }
 }

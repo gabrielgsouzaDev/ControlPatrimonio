@@ -58,8 +58,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const assetsQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'assets') : null), [firestore, user]);
-  const categoriesQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null), [firestore, user]);
+  const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
+  const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
 
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
@@ -126,9 +126,9 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
   const handleDelete = () => {
     if (dialogState?.type === "delete" && user && firestore) {
-      startTransition(() => {
+      startTransition(async () => {
         try {
-          deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
+          await deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
           setDialogState(null);
           toast({ title: "Sucesso", description: "Item excluído com sucesso." });
         } catch(error: any) {

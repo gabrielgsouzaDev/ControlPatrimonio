@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from "react";
+import { useState, useMemo, useTransition } from "react";
 import type { HistoryLog } from "@/lib/types";
 import { HistoryTable } from "@/components/dashboard/history-table";
 import { Input } from "@/components/ui/input";
@@ -15,45 +15,39 @@ import { Button } from "@/components/ui/button";
 import { Search, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { exportHistoryToCsv, getHistory } from "@/lib/actions";
-import { useUser } from "@/firebase";
+import { exportHistoryToCsv } from "@/lib/actions";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 export default function HistoryClient({
   initialHistory,
 }: {
   initialHistory: HistoryLog[];
 }) {
-  const [history, setHistory] = useState<HistoryLog[]>(initialHistory);
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { user } = useUser();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    const refreshHistory = async () => {
-      if(user) {
-        const newHistory = await getHistory();
-        setHistory(newHistory);
-      }
-    };
-    refreshHistory();
-    const interval = setInterval(refreshHistory, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
-  }, [user]);
+  const historyQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'history') : null), [firestore]);
+  const { data: history, isLoading: isLoadingHistory } = useCollection<HistoryLog>(historyQuery);
 
   const uniqueActions = useMemo(() => {
+    if (!history) return ["all"];
     const actions = new Set(history.map((log) => log.action));
     return ["all", ...Array.from(actions)];
   }, [history]);
 
   const uniqueUsers = useMemo(() => {
+    if (!history) return ["all"];
     const users = new Set(history.map((log) => log.userDisplayName));
     return ["all", ...Array.from(users)];
   }, [history]);
 
   const filteredHistory = useMemo(() => {
+    if (!history) return [];
     let filtered = history;
 
     if (actionFilter !== "all") {
@@ -107,6 +101,13 @@ export default function HistoryClient({
     });
   };
 
+  if (isLoadingHistory) {
+      return (
+          <div className="flex h-[80vh] items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <>
@@ -176,7 +177,7 @@ export default function HistoryClient({
             </DropdownMenu>
         </div>
       </div>
-      <HistoryTable history={filteredHistory} />
+      <HistoryTable history={filteredHistory || []} />
     </>
   );
 }

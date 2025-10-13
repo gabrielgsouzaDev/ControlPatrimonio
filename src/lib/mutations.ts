@@ -27,18 +27,18 @@ export function addAsset(
 ) {
     const batch = writeBatch(firestore);
 
-    // 1. Create a new asset document
-    const assetRef = doc(collection(firestore, 'users', userId, 'assets'));
+    // 1. Create a new asset document in the global collection
+    const assetRef = doc(collection(firestore, 'assets'));
     const assetPayload = { 
         ...assetData, 
-        userId, 
+        userId, // Keep track of who created it
         createdAt: serverTimestamp(), 
         updatedAt: serverTimestamp() 
     };
     batch.set(assetRef, assetPayload);
 
-    // 2. Create a new history log for the asset creation
-    const historyRef = doc(collection(firestore, 'users', userId, 'history'));
+    // 2. Create a new history log for the asset creation in the global collection
+    const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {
         assetId: assetRef.id,
         assetName: assetData.name,
@@ -53,7 +53,7 @@ export function addAsset(
 
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
-        console.log("Caught error in addAsset", error);
+        console.error("Error in addAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -62,7 +62,6 @@ export function addAsset(
               requestResourceData: assetPayload,
             })
         );
-         // Also emit for history log write if needed, but asset is primary
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -89,7 +88,7 @@ export async function updateAsset(
     assetId: string, 
     assetData: AssetFormValues
 ) {
-    const assetRef = doc(firestore, 'users', userId, 'assets', assetId);
+    const assetRef = doc(firestore, 'assets', assetId);
     
     // Get old data first to calculate diff for history
     const oldAssetSnap = await getDoc(assetRef);
@@ -101,7 +100,7 @@ export async function updateAsset(
     const batch = writeBatch(firestore);
 
     // 1. Update the asset document
-    const assetPayload = { ...assetData, updatedAt: serverTimestamp() };
+    const assetPayload = { ...assetData, userId, updatedAt: serverTimestamp() }; // Keep track of who last updated it
     batch.update(assetRef, assetPayload);
     
     // 2. Create a history log based on the changes
@@ -112,7 +111,7 @@ export async function updateAsset(
         }
     });
 
-    const historyRef = doc(collection(firestore, 'users', userId, 'history'));
+    const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {
         assetId: assetId,
         assetName: assetData.name,
@@ -127,6 +126,7 @@ export async function updateAsset(
 
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
+        console.error("Error in updateAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -159,7 +159,7 @@ export async function deleteAsset(
     userDisplayName: string, 
     assetId: string
 ) {
-    const assetRef = doc(firestore, 'users', userId, 'assets', assetId);
+    const assetRef = doc(firestore, 'assets', assetId);
 
     // Get the asset data before deleting for the history log
     const assetDoc = await getDoc(assetRef);
@@ -174,7 +174,7 @@ export async function deleteAsset(
     batch.delete(assetRef);
     
     // 2. Create a history log for the deletion
-    const historyRef = doc(collection(firestore, 'users', userId, 'history'));
+    const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {
         assetId: assetId,
         assetName: assetData.name,
@@ -189,6 +189,7 @@ export async function deleteAsset(
     
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
+        console.error("Error in deleteAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({

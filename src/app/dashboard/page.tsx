@@ -15,7 +15,7 @@ import {
   Cell,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Asset, Category } from '@/lib/types';
 import { useMemo } from 'react';
@@ -23,11 +23,10 @@ import { useMemo } from 'react';
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
 export default function DashboardPage() {
-  const { user } = useUser();
   const firestore = useFirestore();
 
-  const assetsQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'assets') : null), [firestore, user]);
-  const categoriesQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null), [firestore, user]);
+  const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
+  const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
 
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
