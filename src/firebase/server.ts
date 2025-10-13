@@ -13,11 +13,11 @@ export async function initializeFirebase(): Promise<{ auth: ReturnType<typeof ge
         projectId: firebaseConfig.projectId,
     });
     
-    return getSdks(app);
+    return await getSdks(app);
   }
 
   const app = getApp();
-  return getSdks(app);
+  return await getSdks(app);
 }
 
 export async function getSdks(app: App): Promise<{ auth: ReturnType<typeof getAuth>, firestore: ReturnType<typeof getFirestore>, app: App }> {

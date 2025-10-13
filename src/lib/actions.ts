@@ -21,10 +21,8 @@ const assetSchema = z.object({
 });
 
 async function getUserIdAndServices() {
-    const { firestore } = await initializeFirebase();
-    // This is a workaround to get the current user in a server action
-    // In a real app you might use a session management library or pass the token
-    const user = auth().currentUser;
+    const { auth: adminAuth, firestore } = await initializeFirebase();
+    const user = adminAuth.currentUser;
     if (!user) throw new Error("Usuário não autenticado.");
     return { userId: user.uid, userDisplayName: user.displayName || user.email, firestore };
 }
@@ -246,7 +244,7 @@ export async function updateCategory(id: string, name: string): Promise<Category
     const { userId, firestore } = await getUserIdAndServices();
     const validatedField = categorySchema.pick({ name: true }).safeParse({ name });
     if (!validatedField.success) {
-        throw new Error(validatedField.error.flatten().fieldErrors.name?.[0]);
+        throw new Error(validatedField.error.flatten().fieldErrors.name?.[0].toString());
     }
     
     const categoryRef = doc(firestore, 'users', userId, 'categories', id);
