@@ -129,6 +129,35 @@
             }
         },
         "required": ["id", "assetId", "assetName", "codeId", "action", "details", "userId", "userDisplayName", "timestamp"]
+    },
+    "Anomaly": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Anomaly",
+        "type": "object",
+        "description": "Represents an anomaly detected for an asset.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the anomaly."
+            },
+            "assetId": {
+                "type": "string",
+                "description": "ID of the asset with the anomaly."
+            },
+            "anomalyType": {
+                "type": "string",
+                "description": "Type of anomaly (e.g., 'value', 'location')."
+            },
+            "description": {
+                "type": "string",
+                "description": "Description of the anomaly."
+            },
+            "userId": {
+              "type": "string",
+              "description": "ID of the user who owns the asset related to this anomaly."
+            }
+        },
+        "required": ["id", "assetId", "anomalyType", "description", "userId"]
     }
   },
   "auth": {
@@ -177,6 +206,16 @@
             "$ref": "#/entities/HistoryLog"
           },
           "description": "Stores change history logs for each user's assets."
+        }
+      },
+      {
+        "path": "/users/{userId}/assets/{assetId}/anomalies/{anomalyId}",
+        "definition": {
+            "entityName": "Anomaly",
+            "schema": {
+                "$ref": "#/entities/Anomaly"
+            },
+            "description": "Stores anomalies detected for a specific asset."
         }
       }
     ],

@@ -1,126 +1,88 @@
 /**
- * @fileoverview Firestore Security Rules for AssetFlow Application
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Users can only access their own data,
- * specifically their user profile, assets, and associated anomalies.
+ * @fileOverview
+ * This ruleset enforces a strict user-ownership model for all data within the application.
+ * All data is nested under `/users/{userId}`, ensuring that only the authenticated user can access their own data.
  *
  * Data Structure:
- * All data is nested under /users/{userId}, ensuring data isolation and simplifying security rules.
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/assets/{assetId}: Stores asset data owned by the user.
- * - /users/{userId}/assets/{assetId}/anomalies/{anomalyId}: Stores anomaly data associated with an asset.
+ * - `/users/{userId}`: User profile information.
+ * - `/users/{userId}/assets/{assetId}`: Assets owned by the user.
+ * - `/users/{userId}/anomalies/{anomalyId}`: Anomalies associated with the user's assets.
  *
  * Key Security Decisions:
- * - Users can only create their own user document (self-registration).
- * - Users can only read, create, update, and delete their own assets and anomalies.
- * - Listing other users is not allowed.
- * - No public data access is permitted.
- *
- * Denormalization for Authorization:
- * The data model inherently denormalizes the userId by nesting data under /users/{userId}.
- * This avoids costly `get()` calls in security rules.
+ * - Users can only create, read, update, and delete their own profiles and associated data.
+ * - Listing all users is disallowed.
+ * - Data consistency between the path and the document's internal `userId` field is enforced on creation and updates.
+ * - Deletion is only allowed if the document exists and the user is the owner.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Global functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
     /**
-     * @description Defines rules for user profile documents.
+     * @description Rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create their own profile document at /users/user123.
-     * @deny (create) - User with UID 'user123' cannot create a profile document at /users/anotherUser.
-     * @allow (get) - User with UID 'user123' can read their profile document at /users/user123.
-     * @deny (get) - User with UID 'user123' cannot read another user's profile document at /users/anotherUser.
-     * @allow (update) - User with UID 'user123' can update their profile document at /users/user123.
-     * @deny (update) - User with UID 'user123' cannot update another user's profile document at /users/anotherUser.
-     * @allow (delete) - User with UID 'user123' can delete their profile document at /users/user123.
-     * @deny (delete) - User with UID 'user123' cannot delete another user's profile document at /users/anotherUser.
-     * @allow (list) - User with UID 'user123' can not list the contents of /users
-     * @principle Enforces user ownership for all operations on user profile documents.
+     * @allow (create) User with matching UID creates their profile.
+     * @allow (get) User with matching UID reads their profile.
+     * @deny (list) Listing all users is not allowed.
+     * @allow (update) User with matching UID updates their profile.
+     * @allow (delete) User with matching UID deletes their profile.
+     * @principle Enforces document ownership and prevents unauthorized access to user profiles.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
       allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
-      allow delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
-    }
+      allow delete: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
 
-    /**
-     * @description Defines rules for asset documents under a user's profile.
-     * @path /users/{userId}/assets/{assetId}
-     * @allow (create) - User with UID 'user123' can create an asset document at /users/user123/assets/asset001.
-     * @deny (create) - User with UID 'user123' cannot create an asset document at /users/anotherUser/assets/asset001.
-     * @allow (get) - User with UID 'user123' can read their asset document at /users/user123/assets/asset001.
-     * @deny (get) - User with UID 'user123' cannot read another user's asset document at /users/anotherUser/assets/asset001.
-     * @allow (update) - User with UID 'user123' can update their asset document at /users/user123/assets/asset001.
-     * @deny (update) - User with UID 'user123' cannot update another user's asset document at /users/anotherUser/assets/asset001.
-     * @allow (delete) - User with UID 'user123' can delete their asset document at /users/user123/assets/asset001.
-     * @deny (delete) - User with UID 'user123' cannot delete another user's asset document at /users/anotherUser/assets/asset001.
-     * @allow (list) - User with UID 'user123' can list their asset documents under /users/user123/assets.
-     * @principle Enforces user ownership for all operations on asset documents.
-     */
-    match /users/{userId}/assets/{assetId} {
-      function isSignedIn() {
-        return request.auth != null;
+      /**
+       * @description Rules for assets owned by a user.
+       * @path /users/{userId}/assets/{assetId}
+       * @allow (create) User creates an asset with their UID as the owner.
+       * @allow (get) User reads their own asset.
+       * @allow (list) User lists their own assets.
+       * @allow (update) User updates their own existing asset, maintaining ownership.
+       * @allow (delete) User deletes their own existing asset.
+       * @principle Enforces document ownership for assets and prevents unauthorized modifications.
+       */
+      match /assets/{assetId} {
+        allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+        allow get: if isSignedIn() && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
+        allow delete: if isSignedIn() && isExistingOwner(userId);
+
+        /**
+         * @description Rules for anomalies associated with a user's assets.
+         * @path /users/{userId}/assets/{assetId}/anomalies/{anomalyId}
+         * @allow (create) User creates an anomaly for their asset, maintaining ownership.
+         * @allow (get) User reads their own anomaly.
+         * @allow (list) User lists anomalies for their own asset.
+         * @allow (update) User updates their own existing anomaly, maintaining ownership.
+         * @allow (delete) User deletes their own existing anomaly.
+         * @principle Enforces document ownership for anomalies and prevents unauthorized modifications.
+         */
+        match /anomalies/{anomalyId} {
+          allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+          allow get: if isSignedIn() && isOwner(userId);
+          allow list: if isSignedIn() && isOwner(userId);
+          allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
+          allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+        }
       }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Defines rules for anomaly documents under an asset.
-     * @path /users/{userId}/assets/{assetId}/anomalies/{anomalyId}
-     * @allow (create) - User with UID 'user123' can create an anomaly document at /users/user123/assets/asset001/anomalies/anomaly001.
-     * @deny (create) - User with UID 'user123' cannot create an anomaly document at /users/anotherUser/assets/asset001/anomalies/anomaly001.
-     * @allow (get) - User with UID 'user123' can read their anomaly document at /users/user123/assets/asset001/anomalies/anomaly001.
-     * @deny (get) - User with UID 'user123' cannot read another user's anomaly document at /users/anotherUser/assets/asset001/anomalies/anomaly001.
-     * @allow (update) - User with UID 'user123' can update their anomaly document at /users/user123/assets/asset001/anomalies/anomaly001.
-     * @deny (update) - User with UID 'user123' cannot update another user's anomaly document at /users/anotherUser/assets/asset001/anomalies/anomaly001.
-     * @allow (delete) - User with UID 'user123' can delete their anomaly document at /users/user123/assets/asset001/anomalies/anomaly001.
-     * @deny (delete) - User with UID 'user123' cannot delete another user's anomaly document at /users/anotherUser/assets/asset001/anomalies/anomaly001.
-     * @allow (list) - User with UID 'user123' can list their anomaly documents under /users/user123/assets/asset001/anomalies.
-     * @principle Enforces user ownership for all operations on anomaly documents.
-     */
-    match /users/{userId}/assets/{assetId}/anomalies/{anomalyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow create: if isSignedIn() && isOwner(userId);
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
   }
 }
