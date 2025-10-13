@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   SidebarProvider,
   Sidebar,
@@ -93,20 +92,6 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-          <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
-            <Avatar className="size-8">
-              <AvatarImage
-                src="https://picsum.photos/seed/user/40/40"
-                alt="User"
-                data-ai-hint="user avatar"
-              />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden">
-              <span className="font-medium">Usuário</span>
-              <span className="text-muted-foreground">usuario@email.com</span>
-            </div>
-          </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
