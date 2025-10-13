@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Sparkles, Loader2, Search, Settings } from "lucide-react";
+import { Download, PlusCircle, Sparkles, Loader2, Search, Settings, FileSpreadsheet, FileText } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -34,6 +34,7 @@ import {
 import { deleteAsset, runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type DialogState =
   | { type: "add" }
@@ -130,7 +131,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     });
   };
   
-  const handleExport = () => {
+  const handleExportCsv = () => {
     startTransition(async () => {
         try {
             const csvString = await exportAssetsToCsv(filteredAssets);
@@ -153,6 +154,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         }
     });
   }
+
+  const handleExportPdf = () => {
+    toast({
+      title: "Funcionalidade em breve",
+      description: "A exportação para PDF ainda não está disponível.",
+    });
+  };
 
   return (
     <>
@@ -193,13 +201,28 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             </SelectContent>
           </Select>
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handleExport} disabled={isPending} className="w-full sm:w-auto">
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                <span className="hidden sm:inline ml-2">Exportar</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  <span className="hidden sm:inline ml-2">Exportar</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportCsv}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  <span>Exportar para CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Exportar para PDF</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="outline" onClick={handleDetectAnomalies} disabled={isDetecting} className="w-full sm:w-auto">
                 {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                <span className="hidden sm:inline ml-2">Anomalias</span>
+                <span className="hidden sm:inline ml-2">Analisar com IA</span>
             </Button>
             <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })}>
                 <Settings className="h-4 w-4" />
@@ -309,3 +332,5 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     </>
   );
 }
+
+    
