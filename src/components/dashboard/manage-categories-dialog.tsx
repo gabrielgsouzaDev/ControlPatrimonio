@@ -20,15 +20,20 @@ interface ManageCategoriesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categories: Category[];
-  onCategoriesChange: (categories: Category[]) => void;
+  onCategoriesChange: () => void;
 }
 
-export function ManageCategoriesDialog({ open, onOpenChange, categories, onCategoriesChange }: ManageCategoriesDialogProps) {
+export function ManageCategoriesDialog({ open, onOpenChange, categories: initialCategories, onCategoriesChange }: ManageCategoriesDialogProps) {
   const [isPending, startTransition] = useTransition();
+  const [categories, setCategories] = useState(initialCategories);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    setCategories(initialCategories);
+  }, [initialCategories]);
 
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) {
@@ -37,9 +42,9 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories, onCateg
     }
     startTransition(async () => {
       try {
-        const newCategory = await addCategory(newCategoryName);
-        onCategoriesChange([...categories, newCategory]);
+        await addCategory(newCategoryName);
         setNewCategoryName("");
+        onCategoriesChange();
         toast({ title: "Sucesso", description: "Categoria adicionada." });
       } catch (error: any) {
         toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -54,10 +59,10 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories, onCateg
     }
     startTransition(async () => {
       try {
-        const updatedCategory = await updateCategory(id, editingCategoryName);
-        onCategoriesChange(categories.map(c => c.id === id ? updatedCategory : c));
+        await updateCategory(id, editingCategoryName);
         setEditingCategoryId(null);
         setEditingCategoryName("");
+        onCategoriesChange();
         toast({ title: "Sucesso", description: "Categoria atualizada." });
       } catch (error: any) {
         toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -69,7 +74,7 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories, onCateg
     startTransition(async () => {
         try {
             await deleteCategory(id);
-            onCategoriesChange(categories.filter(c => c.id !== id));
+            onCategoriesChange();
             toast({ title: "Sucesso", description: "Categoria excluída." });
         } catch (error: any) {
             toast({ variant: "destructive", title: "Erro", description: error.message });

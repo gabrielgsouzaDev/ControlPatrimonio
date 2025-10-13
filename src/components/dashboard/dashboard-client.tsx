@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import type { Asset, Anomaly, Category } from "@/lib/types";
 import {
   Select,
@@ -35,6 +35,7 @@ import { deleteAsset, runAnomalyDetection, exportAssetsToCsv, getAssets, getCate
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useUser } from "@/firebase";
 
 type DialogState =
   | { type: "add" }
@@ -53,14 +54,20 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [isPending, startTransition] = useTransition();
   const [isDetecting, startDetectingTransition] = useTransition();
-
+  const { user } = useUser();
   const { toast } = useToast();
   
   const refreshData = async () => {
+    if (!user) return;
     const [newAssets, newCategories] = await Promise.all([getAssets(), getCategories()]);
     setAssets(newAssets);
     setCategories(newCategories);
   }
+
+  useEffect(() => {
+    refreshData();
+  }, [user]);
+
 
   const uniqueCities = useMemo(() => {
     const cities = new Set(assets.map((asset) => asset.city));
@@ -108,8 +115,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     setDialogState(null);
   };
   
-  const handleCategoriesUpdate = (updatedCategories: Category[]) => {
-    setCategories(updatedCategories);
+  const handleCategoriesUpdate = () => {
     refreshData();
   }
 
