@@ -15,11 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Asset, Category } from "@/lib/types";
-import { addAsset, updateAsset } from "@/lib/actions";
+import { addAsset, updateAsset } from "@/lib/mutations";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFirestore, useUser } from "@/firebase";
 
 const assetFormSchema = z.object({
   name: z.string().min(1, { message: "O nome é obrigatório." }),
@@ -30,7 +31,7 @@ const assetFormSchema = z.object({
   observation: z.string().optional(),
 });
 
-type AssetFormValues = z.infer<typeof assetFormSchema>;
+export type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AddEditAssetFormProps {
   asset?: Asset;
@@ -41,6 +42,8 @@ interface AddEditAssetFormProps {
 export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEditAssetFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   
   const form = useForm<AssetFormValues>({
     resolver: zodResolver(assetFormSchema),
@@ -55,28 +58,24 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
   });
 
   const onSubmit = (data: AssetFormValues) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-
-    if (asset) {
-        formData.append('id', asset.id);
+    if (!user || !firestore) {
+        toast({ variant: "destructive", title: "Erro de Autenticação", description: "Usuário não encontrado. Por favor, faça login novamente."});
+        return;
     }
 
     startTransition(async () => {
-        const action = asset ? updateAsset : addAsset;
-        const result = await action(formData);
-        
-        if (result?.errors) {
-            console.error(result.errors);
-            toast({ variant: "destructive", title: "Erro de Validação", description: "Por favor, verifique os campos do formulário."});
-        } else {
+        try {
+            if (asset) {
+                await updateAsset(firestore, user.uid, user.displayName || "Usuário", asset.id, data);
+            } else {
+                await addAsset(firestore, user.uid, user.displayName || "Usuário", data);
+            }
             const successMessage = asset ? "Item atualizado com sucesso." : "Item adicionado com sucesso.";
             toast({ title: "Sucesso", description: successMessage });
             onSubmitSuccess();
+        } catch (error: any) {
+            console.error("Error submitting asset form:", error);
+            toast({ variant: "destructive", title: "Erro ao Salvar", description: error.message || "Não foi possível salvar o item."});
         }
     });
   };

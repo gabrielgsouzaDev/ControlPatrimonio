@@ -31,7 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteAsset, runAnomalyDetection, exportAssetsToCsv, getAssets } from "@/lib/actions";
+import { deleteAsset } from "@/lib/mutations";
+import { runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -47,7 +48,6 @@ type DialogState =
   | null;
 
 export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -58,21 +58,14 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const assetsQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'assets') : null), [firestore, user]);
   const categoriesQuery = useMemoFirebase(() => (user && firestore ? collection(firestore, 'users', user.uid, 'categories') : null), [firestore, user]);
+
+  const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
 
-  const refreshData = async () => {
-    if (!user) return;
-    const newAssets = await getAssets();
-    setAssets(newAssets);
-  }
-
-  useEffect(() => {
-    refreshData();
-  }, [user]);
-
-
   const uniqueCities = useMemo(() => {
+    if (!assets) return ["all"];
     const cities = new Set(assets.map((asset) => asset.city));
     return ["all", ...Array.from(cities)];
   }, [assets]);
@@ -83,6 +76,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }, [categories]);
 
   const filteredAssets = useMemo(() => {
+    if (!assets) return [];
+    
     let filtered = assets;
 
     if (cityFilter !== "all") {
@@ -104,7 +99,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       );
     }
     
-    return filtered;
+    // Enrich with category name
+    const categoryMap = new Map((categories || []).map(cat => [cat.id, cat.name]));
+    return filtered.map(asset => ({
+        ...asset,
+        category: categoryMap.get(asset.categoryId) || "Sem Categoria"
+    }));
+
   }, [assets, categories, cityFilter, categoryFilter, searchTerm]);
   
   const anomalies = useMemo(() => {
@@ -115,28 +116,34 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }, [dialogState]);
 
   const handleFormSubmit = () => {
-    refreshData();
+    // Data is real-time, no need to manually refresh
     setDialogState(null);
   };
   
   const handleCategoriesUpdate = () => {
-    // A atualização de categorias já é em tempo real pelo useCollection,
-    // mas podemos forçar a atualização dos assets caso uma categoria tenha mudado de nome
-    refreshData();
+     // Data is real-time, no need to manually refresh
   }
 
   const handleDelete = () => {
-    if (dialogState?.type === "delete") {
+    if (dialogState?.type === "delete" && user && firestore) {
       startTransition(async () => {
-        await deleteAsset(dialogState.asset.id);
-        refreshData();
-        setDialogState(null);
-        toast({ title: "Sucesso", description: "Item excluído com sucesso." });
+        try {
+          await deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
+          setDialogState(null);
+          toast({ title: "Sucesso", description: "Item excluído com sucesso." });
+        } catch(error: any) {
+          console.error("Error deleting asset:", error);
+          toast({ variant: "destructive", title: "Erro ao Excluir", description: error.message || "Não foi possível excluir o item."});
+        }
       });
     }
   };
 
   const handleDetectAnomalies = () => {
+    if (!assets || assets.length === 0) {
+        toast({ title: "Sem Dados", description: "Não há itens de patrimônio para analisar." });
+        return;
+    }
     startDetectingTransition(async () => {
         try {
             const detectedAnomalies = await runAnomalyDetection(assets);
@@ -159,7 +166,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 toast({ variant: "destructive", title: "Exportação Falhou", description: "Não há dados para exportar."});
                 return;
             }
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
@@ -181,6 +188,14 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       description: "A exportação para PDF ainda não está disponível.",
     });
   };
+
+  if (isLoadingAssets || isLoadingCategories) {
+    return (
+        <div className="flex h-[80vh] items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <>
@@ -324,8 +339,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
           </DialogHeader>
            <div className="max-h-[60vh] overflow-y-auto pr-4">
                 <ul className="space-y-4">
-                    {dialogState?.type === 'anomalies' && dialogState.anomalies.map((anomaly) => (
-                        <li key={anomaly.codeId} className="p-4 rounded-md border bg-card">
+                    {dialogState?.type === 'anomalies' && dialogState.anomalies.map((anomaly, index) => (
+                        <li key={index} className="p-4 rounded-md border bg-card">
                             <p className="font-semibold text-foreground">
                                 Item (ID): <span className="font-normal text-muted-foreground">{anomaly.codeId}</span>
                             </p>
