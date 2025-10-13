@@ -1,32 +1,27 @@
 /**
- * @fileOverview
- * This ruleset enforces a strict user-ownership model for all data within the application.
- * All data is nested under `/users/{userId}`, ensuring that only the authenticated user can access their own data.
- *
- * Data Structure:
- * - `/users/{userId}`: User profile information.
- * - `/users/{userId}/assets/{assetId}`: Assets owned by the user.
- * - `/users/{userId}/anomalies/{anomalyId}`: Anomalies associated with the user's assets.
- *
+ * @description This ruleset enforces a strict user-ownership model, where each user can only access their own data.
+ * All data is nested under the /users/{userId} collection, ensuring clear ownership.
  * Key Security Decisions:
- * - Users can only create, read, update, and delete their own profiles and associated data.
- * - Listing all users is disallowed.
- * - Data consistency between the path and the document's internal `userId` field is enforced on creation and updates.
- * - Deletion is only allowed if the document exists and the user is the owner.
+ *  - Users can only create, read, update, and delete their own profiles and associated data (assets, categories, anomalies).
+ *  - Listing other users is disallowed.
+ *  - The rules rely on the authenticated user's UID matching the {userId} path segment and relevant document fields (e.g., userId in assets) to grant access.
+ *  - Data for assets, categories and anomalies MUST include the `userId` of the owning user. This value is validated on create and update.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global functions
+    // Function to check if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Function to check if the authenticated user is the owner of the resource
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
+    // Function to check if the authenticated user is the owner of the resource and it exists
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
@@ -34,54 +29,68 @@ service cloud.firestore {
     /**
      * @description Rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) User with matching UID creates their profile.
-     * @allow (get) User with matching UID reads their profile.
-     * @deny (list) Listing all users is not allowed.
-     * @allow (update) User with matching UID updates their profile.
-     * @allow (delete) User with matching UID deletes their profile.
-     * @principle Enforces document ownership and prevents unauthorized access to user profiles.
+     * @allow (create) - User with UID 'user_abc' can create their profile if request.auth.uid == 'user_abc'.
+     * @allow (get) - User with UID 'user_abc' can get their profile.
+     * @deny (list) - No one can list all user profiles.
+     * @deny (update) - User with UID 'user_xyz' cannot update user 'user_abc' profile.
+     * @principle Enforces document ownership, ensures only the authenticated user can manage their profile.
      */
     match /users/{userId} {
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+      allow update: if isSignedIn() && isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isSignedIn() && isExistingOwner(userId) && resource.data.id == userId;
 
       /**
-       * @description Rules for assets owned by a user.
+       * @description Rules for assets belonging to a user.
        * @path /users/{userId}/assets/{assetId}
-       * @allow (create) User creates an asset with their UID as the owner.
-       * @allow (get) User reads their own asset.
-       * @allow (list) User lists their own assets.
-       * @allow (update) User updates their own existing asset, maintaining ownership.
-       * @allow (delete) User deletes their own existing asset.
-       * @principle Enforces document ownership for assets and prevents unauthorized modifications.
+       * @allow (create) - User 'user_abc' can create an asset under their profile if request.resource.data.userId == 'user_abc'.
+       * @allow (get) - User 'user_abc' can get an asset under their profile.
+       * @allow (list) - User 'user_abc' can list the assets under their profile.
+       * @deny (update) - User 'user_xyz' cannot update an asset belonging to user 'user_abc'.
+       * @principle Enforces nested document ownership; only the owning user can manage their assets.
        */
       match /assets/{assetId} {
         allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
         allow get: if isSignedIn() && isOwner(userId);
         allow list: if isSignedIn() && isOwner(userId);
-        allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
+        allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
         allow delete: if isSignedIn() && isExistingOwner(userId);
 
         /**
-         * @description Rules for anomalies associated with a user's assets.
+         * @description Rules for anomalies associated with an asset.
          * @path /users/{userId}/assets/{assetId}/anomalies/{anomalyId}
-         * @allow (create) User creates an anomaly for their asset, maintaining ownership.
-         * @allow (get) User reads their own anomaly.
-         * @allow (list) User lists anomalies for their own asset.
-         * @allow (update) User updates their own existing anomaly, maintaining ownership.
-         * @allow (delete) User deletes their own existing anomaly.
-         * @principle Enforces document ownership for anomalies and prevents unauthorized modifications.
+         * @allow (create) - User 'user_abc' can create an anomaly for their asset if request.resource.data.userId == 'user_abc'.
+         * @allow (get) - User 'user_abc' can get an anomaly associated with their asset.
+         * @allow (list) - User 'user_abc' can list the anomalies for their asset.
+         * @deny (update) - User 'user_xyz' cannot update an anomaly associated with an asset belonging to user 'user_abc'.
+         * @principle Enforces nested document ownership; only the owning user can manage anomalies for their assets.
          */
         match /anomalies/{anomalyId} {
           allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
           allow get: if isSignedIn() && isOwner(userId);
           allow list: if isSignedIn() && isOwner(userId);
-          allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
-          allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+          allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+          allow delete: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == userId;
         }
+      }
+
+      /**
+       * @description Rules for categories created by a user.
+       * @path /users/{userId}/categories/{categoryId}
+       * @allow (create) - User 'user_abc' can create a category under their profile if request.resource.data.userId == 'user_abc'.
+       * @allow (get) - User 'user_abc' can get a category under their profile.
+       * @allow (list) - User 'user_abc' can list the categories under their profile.
+       * @deny (update) - User 'user_xyz' cannot update a category belonging to user 'user_abc'.
+       * @principle Enforces nested document ownership; only the owning user can manage their categories.
+       */
+      match /categories/{categoryId} {
+        allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+        allow get: if isSignedIn() && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isSignedIn() && isExistingOwner(userId);
       }
     }
   }
