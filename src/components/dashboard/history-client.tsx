@@ -49,7 +49,7 @@ export default function HistoryClient({
   }, [history]);
 
   const uniqueUsers = useMemo(() => {
-    const users = new Set(history.map((log) => log.user));
+    const users = new Set(history.map((log) => log.userDisplayName));
     return ["all", ...Array.from(users)];
   }, [history]);
 
@@ -61,7 +61,7 @@ export default function HistoryClient({
     }
 
     if (userFilter !== "all") {
-      filtered = filtered.filter((log) => log.user === userFilter);
+      filtered = filtered.filter((log) => log.userDisplayName === userFilter);
     }
 
     if (searchTerm) {

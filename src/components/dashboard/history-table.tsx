@@ -71,7 +71,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
                 <TableCell>
                     <Badge variant={getActionBadgeVariant(log.action)}>{log.action}</Badge>
                 </TableCell>
-                <TableCell>{log.user}</TableCell>
+                <TableCell>{log.userDisplayName}</TableCell>
                 <TableCell className="text-muted-foreground">{log.details}</TableCell>
                 <TableCell className="text-right">
                   {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}

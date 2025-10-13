@@ -28,7 +28,6 @@ export type HistoryLog = {
     assetName: string;
     codeId: string;
     action: 'Criado' | 'Atualizado' | 'Excluído';
-    user: string; // This will be userDisplayName for the client
     userId: string;
     userDisplayName: string;
     timestamp: Date | Timestamp;
