@@ -8,14 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { useTheme } from 'next-themes';
 
 const profileFormSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório.' }),
@@ -30,7 +28,6 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
-  const { theme, setTheme } = useTheme();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -98,10 +95,10 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-3xl font-headline tracking-tight">Configurações</h2>
         <p className="text-muted-foreground">
-          Gerencie as configurações da sua conta e preferências do aplicativo.
+          Gerencie as configurações da sua conta.
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Configurações da Conta</CardTitle>
@@ -142,27 +139,6 @@ export default function SettingsPage() {
                 </Button>
               </form>
             </Form>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Tema</CardTitle>
-            <CardDescription>Escolha a aparência do aplicativo.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="theme">Tema</Label>
-              <Select value={theme} onValueChange={setTheme}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Selecione o tema" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Claro</SelectItem>
-                  <SelectItem value="dark">Escuro</SelectItem>
-                  <SelectItem value="system">Sistema</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </CardContent>
         </Card>
       </div>
