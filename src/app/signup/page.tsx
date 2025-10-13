@@ -33,6 +33,19 @@ export default function SignUpPage() {
     }
   }, [auth.currentUser, router]);
 
+  const getFriendlyErrorMessage = (errorCode: string): string => {
+    switch (errorCode) {
+        case 'auth/weak-password':
+            return 'A senha deve ter pelo menos 6 caracteres.';
+        case 'auth/email-already-in-use':
+            return 'Este email já está em uso por outra conta.';
+        case 'auth/invalid-email':
+            return 'O formato do email fornecido é inválido.';
+        default:
+            return 'Não foi possível criar a conta. Tente novamente.';
+    }
+  }
+
   const handleSignUp = async () => {
     setIsPending(true);
     try {
@@ -55,7 +68,7 @@ export default function SignUpPage() {
       toast({
         variant: 'destructive',
         title: 'Erro no Cadastro',
-        description: error.message || 'Não foi possível criar a conta. Tente novamente.',
+        description: getFriendlyErrorMessage(error.code),
       });
     } finally {
       setIsPending(false);
