@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type Asset = {
   id: string;
   name: string;
@@ -5,7 +7,8 @@ export type Asset = {
   city: string;
   value: number;
   observation?: string;
-  category: string;
+  categoryId: string; // Now required
+  category?: string; // Display name, optional
 };
 
 export type Anomaly = {
@@ -21,10 +24,13 @@ export type Category = {
 
 export type HistoryLog = {
     id: string;
+    assetId: string;
     assetName: string;
     codeId: string;
     action: 'Criado' | 'Atualizado' | 'Excluído';
-    user: string;
-    timestamp: Date;
+    user: string; // This will be userDisplayName for the client
+    userId: string;
+    userDisplayName: string;
+    timestamp: Date | Timestamp;
     details: string;
 }

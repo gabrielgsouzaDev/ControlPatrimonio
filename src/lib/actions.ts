@@ -5,57 +5,169 @@ import { z } from 'zod';
 import type { Asset, Anomaly, Category, HistoryLog } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-// Placeholder for a real database call
-import { mockAssets, mockCategories, mockHistory } from './data';
+import { auth } from 'firebase-admin';
+import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, documentId } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase/server'; // We need a server-side firebase initialization
+import { revalidatePath } from 'next/cache';
 
 const assetSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'O nome é obrigatório.'),
   codeId: z.string().min(1, 'O código ID é obrigatório.'),
-  category: z.string().min(1, 'A categoria é obrigatória.'),
+  categoryId: z.string().min(1, 'A categoria é obrigatória.'),
   city: z.string().min(1, 'A cidade/local é obrigatória.'),
   value: z.coerce.number().positive('O valor deve ser um número positivo.'),
   observation: z.string().optional(),
 });
 
+async function getUserIdAndServices() {
+    const { firestore } = initializeFirebase();
+    const user = auth().currentUser;
+    if (!user) throw new Error("Usuário não autenticado.");
+    return { userId: user.uid, userDisplayName: user.displayName || user.email, firestore };
+}
+
 export async function getAssets(): Promise<Asset[]> {
-  // In a real app, this would fetch from Firebase Firestore
-  return Promise.resolve(mockAssets);
+  try {
+    const { userId, firestore } = await getUserIdAndServices();
+    const assetsRef = collection(firestore, 'users', userId, 'assets');
+    const snapshot = await getDocs(assetsRef);
+    if (snapshot.empty) return [];
+    
+    const assets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Asset));
+    
+    const categoryIds = [...new Set(assets.map(asset => asset.categoryId).filter(Boolean))];
+    if (categoryIds.length === 0) {
+        return assets.map(asset => ({ ...asset, category: 'N/A' }));
+    }
+
+    const categoriesRef = collection(firestore, 'users', userId, 'categories');
+    const categoriesQuery = query(categoriesRef, where(documentId(), 'in', categoryIds));
+    const categoriesSnapshot = await getDocs(categoriesQuery);
+    const categoryMap = new Map(categoriesSnapshot.docs.map(doc => [doc.id, doc.data().name]));
+
+    return assets.map(asset => ({
+      ...asset,
+      category: categoryMap.get(asset.categoryId) || 'N/A'
+    }));
+
+  } catch (error) {
+    console.error("Error getting assets:", error);
+    return [];
+  }
 }
 
 export async function addAsset(formData: FormData) {
-  const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
+    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
 
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
+    if (!validatedFields.success) {
+        return { errors: validatedFields.error.flatten().fieldErrors };
+    }
+    
+    const { category, ...assetData } = validatedFields.data;
 
-  // In a real app, you would add this to Firestore
-  console.log('Adding asset:', validatedFields.data);
-  return { success: true };
+    try {
+        const batch = writeBatch(firestore);
+        
+        const assetsRef = collection(firestore, 'users', userId, 'assets');
+        const newAssetRef = doc(assetsRef);
+        batch.set(newAssetRef, { ...assetData, userId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        
+        const historyRef = collection(firestore, 'users', userId, 'history');
+        const historyLog = {
+            assetId: newAssetRef.id,
+            assetName: assetData.name,
+            codeId: assetData.codeId,
+            action: "Criado",
+            details: "Item novo adicionado ao inventário.",
+            userId: userId,
+            userDisplayName: userDisplayName,
+            timestamp: serverTimestamp()
+        };
+        batch.set(doc(historyRef), historyLog);
+
+        await batch.commit();
+        revalidatePath('/dashboard/patrimonio');
+        return { success: true };
+    } catch (error) {
+        console.error("Error adding asset:", error);
+        return { errors: { _server: ['Não foi possível adicionar o item.'] } };
+    }
 }
 
 export async function updateAsset(formData: FormData) {
-  const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
+    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    const validatedFields = assetSchema.safeParse(Object.fromEntries(formData.entries()));
 
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
-  
-  // In a real app, you would update this in Firestore
-  console.log('Updating asset:', validatedFields.data);
-  return { success: true };
+    if (!validatedFields.success) {
+        return { errors: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { id, category, ...assetData } = validatedFields.data;
+    if (!id) return { errors: { _server: ['ID do item não encontrado.'] } };
+
+    try {
+        const batch = writeBatch(firestore);
+
+        const assetRef = doc(firestore, 'users', userId, 'assets', id);
+        batch.update(assetRef, { ...assetData, updatedAt: serverTimestamp() });
+        
+        const historyRef = collection(firestore, 'users', userId, 'history');
+        const historyLog = {
+            assetId: id,
+            assetName: assetData.name,
+            codeId: assetData.codeId,
+            action: "Atualizado",
+            details: "Item foi atualizado.",
+            userId: userId,
+            userDisplayName: userDisplayName,
+            timestamp: serverTimestamp()
+        };
+        batch.set(doc(historyRef), historyLog);
+
+        await batch.commit();
+        revalidatePath('/dashboard/patrimonio');
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating asset:", error);
+        return { errors: { _server: ['Não foi possível atualizar o item.'] } };
+    }
 }
 
+
 export async function deleteAsset(id: string) {
-  // In a real app, you would delete this from Firestore
-  console.log('Deleting asset with id:', id);
-  return { success: true };
+  try {
+    const { userId, userDisplayName, firestore } = await getUserIdAndServices();
+    const assetRef = doc(firestore, 'users', userId, 'assets', id);
+    
+    // We need asset data for the history log before deleting
+    // In a real app with security rules, you'd get this via a transaction or trusted environment
+    const assetSnapshot = { name: "Item Excluído", codeId: "N/A" }; // Placeholder
+
+    const batch = writeBatch(firestore);
+    batch.delete(assetRef);
+    
+    const historyRef = collection(firestore, 'users', userId, 'history');
+    const historyLog = {
+        assetId: id,
+        assetName: assetSnapshot.name,
+        codeId: assetSnapshot.codeId,
+        action: "Excluído",
+        details: "Item foi removido do inventário.",
+        userId: userId,
+        userDisplayName: userDisplayName,
+        timestamp: serverTimestamp()
+    };
+    batch.set(doc(historyRef), historyLog);
+    
+    await batch.commit();
+    revalidatePath('/dashboard/patrimonio');
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting asset:", error);
+    return { success: false, error: "Failed to delete asset." };
+  }
 }
 
 
@@ -65,7 +177,6 @@ export async function runAnomalyDetection(assets: Asset[]): Promise<Anomaly[]> {
     return result.anomalies;
   } catch (error) {
     console.error('Error detecting anomalies:', error);
-    // You might want to throw a custom error or return a specific error structure
     throw new Error('Falha ao detectar anomalias.');
   }
 }
@@ -98,46 +209,77 @@ const categorySchema = z.object({
 });
 
 export async function getCategories(): Promise<Category[]> {
-  return Promise.resolve(mockCategories);
+  try {
+    const { userId, firestore } = await getUserIdAndServices();
+    const categoriesRef = collection(firestore, 'users', userId, 'categories');
+    const snapshot = await getDocs(categoriesRef);
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Category));
+  } catch (error) {
+    console.error("Error getting categories:", error);
+    return [];
+  }
 }
 
 export async function addCategory(name: string): Promise<Category> {
+  const { userId, firestore } = await getUserIdAndServices();
   const validatedField = categorySchema.pick({ name: true }).safeParse({ name });
   if (!validatedField.success) {
     throw new Error(validatedField.error.flatten().fieldErrors.name?.[0]);
   }
-  const newCategory = { id: Date.now().toString(), name };
-  console.log("Adding category:", newCategory);
-  // In real app, save to DB
-  mockCategories.push(newCategory);
-  return newCategory;
+  
+  const categoriesRef = collection(firestore, 'users', userId, 'categories');
+  const newCategoryRef = await addDoc(categoriesRef, { name, userId, createdAt: serverTimestamp() });
+  
+  revalidatePath('/dashboard/patrimonio');
+  return { id: newCategoryRef.id, name };
 }
 
 export async function updateCategory(id: string, name: string): Promise<Category> {
+    const { userId, firestore } = await getUserIdAndServices();
     const validatedField = categorySchema.pick({ name: true }).safeParse({ name });
     if (!validatedField.success) {
         throw new Error(validatedField.error.flatten().fieldErrors.name?.[0]);
     }
-    console.log("Updating category:", { id, name });
-    // In real app, update in DB
-    const index = mockCategories.findIndex(c => c.id === id);
-    if (index === -1) throw new Error("Categoria não encontrada.");
-    mockCategories[index].name = name;
-    return mockCategories[index];
+    
+    const categoryRef = doc(firestore, 'users', userId, 'categories', id);
+    await updateDoc(categoryRef, { name });
+    
+    revalidatePath('/dashboard/patrimonio');
+    return { id, name };
 }
 
 export async function deleteCategory(id: string): Promise<{ success: true }> {
-  console.log("Deleting category with id:", id);
-  // In real app, delete from DB
-   const index = mockCategories.findIndex(c => c.id === id);
-   if (index === -1) throw new Error("Categoria não encontrada.");
-   mockCategories.splice(index, 1);
+  const { userId, firestore } = await getUserIdAndServices();
+  // We should also check if any asset is using this category before deleting.
+  // For simplicity, we skip that for now.
+  const categoryRef = doc(firestore, 'users', userId, 'categories', id);
+  await deleteDoc(categoryRef);
+
+  revalidatePath('/dashboard/patrimonio');
   return { success: true };
 }
 
 // History Actions
 export async function getHistory(): Promise<HistoryLog[]> {
-    return Promise.resolve(mockHistory);
+    try {
+        const { userId, firestore } = await getUserIdAndServices();
+        const historyRef = collection(firestore, 'users', userId, 'history');
+        const snapshot = await getDocs(historyRef);
+        if (snapshot.empty) return [];
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                user: data.userDisplayName, // Map userDisplayName to user for the client
+                timestamp: data.timestamp.toDate() 
+            } as HistoryLog;
+        });
+    } catch (error) {
+        console.error("Error getting history:", error);
+        return [];
+    }
 }
 
 export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string> {

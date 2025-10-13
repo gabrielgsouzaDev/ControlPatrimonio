@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState, useEffect } from "react";
+import { Timestamp } from "firebase/firestore";
 
 interface HistoryTableProps {
   history: HistoryLog[];
@@ -34,7 +35,11 @@ export function HistoryTable({ history }: HistoryTableProps) {
     }
   }
 
-  const sortedHistory = [...history].sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
+  const sortedHistory = [...history].sort((a, b) => {
+    const timeA = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+    const timeB = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+    return timeB - timeA;
+});
 
   return (
     <div className="rounded-lg border shadow-sm">
@@ -69,7 +74,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
                 <TableCell>{log.user}</TableCell>
                 <TableCell className="text-muted-foreground">{log.details}</TableCell>
                 <TableCell className="text-right">
-                  {isClient ? format(log.timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
+                  {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
                 </TableCell>
               </TableRow>
             ))

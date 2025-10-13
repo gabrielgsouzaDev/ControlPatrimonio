@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteAsset, runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
+import { deleteAsset, runAnomalyDetection, exportAssetsToCsv, getAssets, getCategories } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -55,6 +55,12 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const [isDetecting, startDetectingTransition] = useTransition();
 
   const { toast } = useToast();
+  
+  const refreshData = async () => {
+    const [newAssets, newCategories] = await Promise.all([getAssets(), getCategories()]);
+    setAssets(newAssets);
+    setCategories(newCategories);
+  }
 
   const uniqueCities = useMemo(() => {
     const cities = new Set(assets.map((asset) => asset.city));
@@ -73,7 +79,10 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     }
     
     if (categoryFilter !== "all") {
-        filtered = filtered.filter((asset) => asset.category === categoryFilter);
+      const selectedCategory = categories.find(c => c.name === categoryFilter);
+      if (selectedCategory) {
+        filtered = filtered.filter((asset) => asset.categoryId === selectedCategory.id);
+      }
     }
 
     if (searchTerm) {
@@ -85,7 +94,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     }
     
     return filtered;
-  }, [assets, cityFilter, categoryFilter, searchTerm]);
+  }, [assets, categories, cityFilter, categoryFilter, searchTerm]);
   
   const anomalies = useMemo(() => {
     if (dialogState?.type === 'anomalies') {
@@ -95,21 +104,20 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }, [dialogState]);
 
   const handleFormSubmit = () => {
-    // This is a mock refresh. In a real app, you might re-fetch or optimistically update.
-    console.log("Form submitted, pretending to refresh data.");
+    refreshData();
     setDialogState(null);
   };
   
   const handleCategoriesUpdate = (updatedCategories: Category[]) => {
     setCategories(updatedCategories);
-    // In a real app, you might want to refetch assets if category names change and are displayed
+    refreshData();
   }
 
   const handleDelete = () => {
     if (dialogState?.type === "delete") {
       startTransition(async () => {
         await deleteAsset(dialogState.asset.id);
-        setAssets(assets.filter(a => a.id !== dialogState.asset.id));
+        refreshData();
         setDialogState(null);
         toast({ title: "Sucesso", description: "Item excluído com sucesso." });
       });
@@ -276,7 +284,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. Isso excluirá permanentemente o item
               <span className="font-semibold"> {dialogState?.type === 'delete' && dialogState.asset.name}</span>.
-            </AlertDialogDescription>
+            </ yaşadıklarını
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -332,5 +340,3 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     </>
   );
 }
-
-    

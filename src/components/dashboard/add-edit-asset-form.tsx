@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const assetFormSchema = z.object({
   name: z.string().min(1, { message: "O nome é obrigatório." }),
   codeId: z.string().min(1, { message: "O código ID é obrigatório." }),
-  category: z.string().min(1, { message: "A categoria é obrigatória." }),
+  categoryId: z.string().min(1, { message: "A categoria é obrigatória." }),
   city: z.string().min(1, { message: "A cidade/local é obrigatória." }),
   value: z.coerce.number().positive({ message: "O valor deve ser um número positivo." }),
   observation: z.string().optional(),
@@ -44,10 +44,10 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
   
   const form = useForm<AssetFormValues>({
     resolver: zodResolver(assetFormSchema),
-    defaultValues: asset || {
+    defaultValues: asset ? { ...asset } : {
       name: "",
       codeId: "",
-      category: "",
+      categoryId: "",
       city: "",
       value: 0,
       observation: "",
@@ -71,7 +71,6 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
         const result = await action(formData);
         
         if (result?.errors) {
-            // Handle server-side validation errors if necessary
             console.error(result.errors);
             toast({ variant: "destructive", title: "Erro de Validação", description: "Por favor, verifique os campos do formulário."});
         } else {
@@ -114,7 +113,7 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
           />
            <FormField
             control={form.control}
-            name="category"
+            name="categoryId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Categoria</FormLabel>
@@ -126,7 +125,7 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
                     </FormControl>
                     <SelectContent>
                         {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>
+                            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

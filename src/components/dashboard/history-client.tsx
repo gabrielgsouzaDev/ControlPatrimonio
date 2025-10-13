@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import type { HistoryLog } from "@/lib/types";
 import { HistoryTable } from "@/components/dashboard/history-table";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Search, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { exportHistoryToCsv } from "@/lib/actions";
+import { exportHistoryToCsv, getHistory } from "@/lib/actions";
+import { useUser } from "@/firebase";
 
 export default function HistoryClient({
   initialHistory,
@@ -28,6 +29,19 @@ export default function HistoryClient({
   const [userFilter, setUserFilter] = useState("all");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
+
+  useEffect(() => {
+    const refreshHistory = async () => {
+      if(user) {
+        const newHistory = await getHistory();
+        setHistory(newHistory);
+      }
+    };
+    refreshHistory();
+    const interval = setInterval(refreshHistory, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, [user]);
 
   const uniqueActions = useMemo(() => {
     const actions = new Set(history.map((log) => log.action));
