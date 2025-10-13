@@ -84,15 +84,13 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
         try {
             const batch = writeBatch(firestore);
             
-            // 1. Unlink assets from the category
             const assetsRef = collection(firestore, 'users', user.uid, 'assets');
             const q = query(assetsRef, where("categoryId", "==", id));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
-              batch.update(doc.ref, { categoryId: "" }); // or set to null/undefined
+              batch.update(doc.ref, { categoryId: "" });
             });
 
-            // 2. Delete the category
             const categoryRef = doc(firestore, 'users', user.uid, 'categories', id);
             batch.delete(categoryRef);
 
