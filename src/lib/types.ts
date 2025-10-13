@@ -4,7 +4,7 @@ export type Asset = {
   id: string;
   name: string;
   codeId: string;
-  city: string;
+  city: string; // This will now be a location ID
   value: number;
   observation?: string;
   categoryId: string; // Now required
@@ -21,6 +21,12 @@ export type Anomaly = {
 };
 
 export type Category = {
+    id: string;
+    name: string;
+    userId?: string; // ID of the user who created it
+};
+
+export type Location = {
     id: string;
     name: string;
     userId?: string; // ID of the user who created it

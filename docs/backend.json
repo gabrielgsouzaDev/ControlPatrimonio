@@ -84,6 +84,27 @@
       },
       "required": ["id", "name", "userId"]
     },
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a shared location for assets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the location."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the location."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who created this location."
+        }
+      },
+      "required": ["id", "name", "userId"]
+    },
     "HistoryLog": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "History Log",
@@ -170,6 +191,16 @@
         }
       },
       {
+        "path": "/locations/{locationId}",
+        "definition": {
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/entities/Location"
+          },
+          "description": "Stores the global list of asset locations, accessible by any authenticated user."
+        }
+      },
+      {
         "path": "/history/{historyId}",
         "definition": {
           "entityName": "HistoryLog",
@@ -180,6 +211,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed for a collaborative, global inventory. All core data collections (assets, categories, history) are at the root level, allowing any authenticated user to access them. User-specific data (profiles) is stored under /users/{userId} to keep account settings private. This model supports a multi-user environment where all users work on a single, unified dataset."
+    "reasoning": "The Firestore structure is designed for a collaborative, global inventory. All core data collections (assets, categories, locations, history) are at the root level, allowing any authenticated user to access them. User-specific data (profiles) is stored under /users/{userId} to keep account settings private. This model supports a multi-user environment where all users work on a single, unified dataset."
   }
 }

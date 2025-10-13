@@ -17,7 +17,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Asset, Category } from '@/lib/types';
+import type { Asset, Category, Location } from '@/lib/types';
 import { useMemo } from 'react';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
@@ -27,12 +27,14 @@ export default function DashboardPage() {
 
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
+  const locationsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'locations') : null), [firestore]);
 
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+  const { data: locations, isLoading: isLoadingLocations } = useCollection<Location>(locationsQuery);
 
   const dashboardData = useMemo(() => {
-    if (!assets || !categories) {
+    if (!assets || !categories || !locations) {
       return {
         totalAssets: 0,
         totalValue: 0,
@@ -45,9 +47,12 @@ export default function DashboardPage() {
     const totalAssets = assets.length;
     const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
     const totalCities = new Set(assets.map(asset => asset.city)).size;
+    
+    const locationMap = new Map(locations.map(loc => [loc.id, loc.name]));
 
     const valueByCity = assets.reduce((acc, asset) => {
-      acc[asset.city] = (acc[asset.city] || 0) + asset.value;
+      const cityName = locationMap.get(asset.city) || 'Sem Localização';
+      acc[cityName] = (acc[cityName] || 0) + asset.value;
       return acc;
     }, {} as { [city: string]: number });
 
@@ -69,7 +74,7 @@ export default function DashboardPage() {
       barChartData,
       pieChartData,
     };
-  }, [assets, categories]);
+  }, [assets, categories, locations]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -78,7 +83,7 @@ export default function DashboardPage() {
     }).format(value);
   };
   
-  if (isLoadingAssets || isLoadingCategories) {
+  if (isLoadingAssets || isLoadingCategories || isLoadingLocations) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

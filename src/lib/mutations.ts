@@ -105,11 +105,18 @@ export async function updateAsset(
     
     // 2. Create a history log based on the changes
     const changes: string[] = [];
-    (Object.keys(assetData) as Array<keyof AssetFormValues>).forEach(key => {
-        if (oldAssetData[key] !== undefined && oldAssetData[key] !== assetData[key]) {
-            changes.push(`${key} alterado de '${oldAssetData[key]}' para '${assetData[key]}'`);
-        }
-    });
+    const locationDoc = assetData.city !== oldAssetData.city ? await getDoc(doc(firestore, 'locations', assetData.city)) : null;
+    const oldLocationDoc = oldAssetData.city && oldAssetData.city !== assetData.city ? await getDoc(doc(firestore, 'locations', oldAssetData.city)) : null;
+    const categoryDoc = assetData.categoryId !== oldAssetData.categoryId ? await getDoc(doc(firestore, 'categories', assetData.categoryId)) : null;
+    const oldCategoryDoc = oldAssetData.categoryId && oldAssetData.categoryId !== assetData.categoryId ? await getDoc(doc(firestore, 'categories', oldAssetData.categoryId)) : null;
+
+    if (oldAssetData.name !== assetData.name) changes.push(`nome alterado de '${oldAssetData.name}' para '${assetData.name}'`);
+    if (oldAssetData.codeId !== assetData.codeId) changes.push(`código ID alterado de '${oldAssetData.codeId}' para '${assetData.codeId}'`);
+    if (oldAssetData.value !== assetData.value) changes.push(`valor alterado de '${oldAssetData.value}' para '${assetData.value}'`);
+    if (oldAssetData.observation !== assetData.observation) changes.push(`observação alterada`);
+    if (oldLocationDoc && locationDoc && oldLocationDoc.exists() && locationDoc.exists()) changes.push(`cidade alterada de '${oldLocationDoc.data()?.name}' para '${locationDoc.data()?.name}'`);
+    if (oldCategoryDoc && categoryDoc && oldCategoryDoc.exists() && categoryDoc.exists()) changes.push(`categoria alterada de '${oldCategoryDoc.data()?.name}' para '${categoryDoc.data()?.name}'`);
+
 
     const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {

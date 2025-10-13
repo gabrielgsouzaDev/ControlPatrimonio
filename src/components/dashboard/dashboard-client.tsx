@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from "react";
-import type { Asset, Anomaly, Category } from "@/lib/types";
+import type { Asset, Anomaly, Category, Location } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Sparkles, Loader2, Search, Settings, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, PlusCircle, Sparkles, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -35,6 +35,7 @@ import { deleteAsset } from "@/lib/mutations";
 import { runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
+import { ManageLocationsDialog } from "./manage-locations-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection } from "firebase/firestore";
@@ -45,6 +46,7 @@ type DialogState =
   | { type: "delete"; asset: Asset }
   | { type: "anomalies"; anomalies: Anomaly[] }
   | { type: "manage-categories" }
+  | { type: "manage-locations" }
   | null;
 
 export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
@@ -60,15 +62,16 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
+  const locationsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'locations') : null), [firestore]);
 
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
+  const { data: locations, isLoading: isLoadingLocations } = useCollection<Location>(locationsQuery);
 
   const uniqueCities = useMemo(() => {
-    if (!assets) return ["all"];
-    const cities = new Set(assets.map((asset) => asset.city));
-    return ["all", ...Array.from(cities)];
-  }, [assets]);
+    if (!locations) return ["all"];
+    return ["all", ...locations.map((loc) => loc.name)];
+  }, [locations]);
 
   const uniqueCategories = useMemo(() => {
     if (!categories) return ["all"];
@@ -80,8 +83,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     
     let filtered = assets;
 
+    const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
+
     if (cityFilter !== "all") {
-      filtered = filtered.filter((asset) => asset.city === cityFilter);
+      const selectedLocation = locations?.find(loc => loc.name === cityFilter);
+      if(selectedLocation) {
+        filtered = filtered.filter((asset) => asset.city === selectedLocation.id);
+      }
     }
     
     if (categoryFilter !== "all" && categories) {
@@ -99,14 +107,14 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       );
     }
     
-    // Enrich with category name
     const categoryMap = new Map((categories || []).map(cat => [cat.id, cat.name]));
     return filtered.map(asset => ({
         ...asset,
-        category: categoryMap.get(asset.categoryId) || "Sem Categoria"
+        category: categoryMap.get(asset.categoryId) || "Sem Categoria",
+        city: locationMap.get(asset.city) || 'Sem Localização'
     }));
 
-  }, [assets, categories, cityFilter, categoryFilter, searchTerm]);
+  }, [assets, categories, locations, cityFilter, categoryFilter, searchTerm]);
   
   const anomalies = useMemo(() => {
     if (dialogState?.type === 'anomalies') {
@@ -121,6 +129,10 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   
   const handleCategoriesUpdate = () => {
      // Categories are updated in real-time by useCollection
+  }
+
+  const handleLocationsUpdate = () => {
+    // Locations are updated in real-time by useCollection
   }
 
   const handleDelete = () => {
@@ -195,7 +207,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     });
   };
 
-  if (isLoadingAssets || isLoadingCategories) {
+  if (isLoadingAssets || isLoadingCategories || isLoadingLocations) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -265,6 +277,10 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 <span className="hidden sm:inline ml-2">Analisar com IA</span>
             </Button>
+            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })}>
+                <MapPin className="h-4 w-4" />
+                <span className="sr-only">Gerenciar Locais</span>
+            </Button>
             <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })}>
                 <Settings className="h-4 w-4" />
                 <span className="sr-only">Gerenciar Categorias</span>
@@ -301,6 +317,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
           <AddEditAssetForm
             asset={dialogState?.type === "edit" ? dialogState.asset : undefined}
             categories={categories || []}
+            locations={locations || []}
             onSubmitSuccess={handleFormSubmit}
           />
         </DialogContent>
@@ -369,6 +386,14 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         onOpenChange={(open) => !open && setDialogState(null)}
         categories={categories || []}
         onCategoriesChange={handleCategoriesUpdate}
+      />
+
+       {/* Manage Locations Dialog */}
+      <ManageLocationsDialog
+        open={dialogState?.type === 'manage-locations'}
+        onOpenChange={(open) => !open && setDialogState(null)}
+        locations={locations || []}
+        onLocationsChange={handleLocationsUpdate}
       />
     </>
   );

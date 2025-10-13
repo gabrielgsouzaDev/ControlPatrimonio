@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Asset, Category } from "@/lib/types";
+import type { Asset, Category, Location } from "@/lib/types";
 import { addAsset, updateAsset } from "@/lib/mutations";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
@@ -36,10 +36,11 @@ export type AssetFormValues = z.infer<typeof assetFormSchema>;
 interface AddEditAssetFormProps {
   asset?: Asset;
   categories: Category[];
+  locations: Location[];
   onSubmitSuccess: () => void;
 }
 
-export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEditAssetFormProps) {
+export function AddEditAssetForm({ asset, categories, locations, onSubmitSuccess }: AddEditAssetFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
@@ -152,18 +153,27 @@ export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEdit
                 )}
             />
             <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Cidade/Local</FormLabel>
-                <FormControl>
-                    <Input placeholder="Ex: São Paulo" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Cidade/Local</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione um local" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                  <FormMessage />
+                  </FormItem>
+              )}
+              />
         </div>
         <FormField
           control={form.control}
