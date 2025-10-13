@@ -9,8 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Sparkles, Loader2 } from "lucide-react";
+import { Download, PlusCircle, Sparkles, Loader2, Search } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -42,6 +43,7 @@ type DialogState =
 
 export default function DashboardClient({ initialAssets }: { initialAssets: Asset[] }) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
+  const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [isPending, startTransition] = useTransition();
@@ -55,11 +57,22 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
   }, [assets]);
 
   const filteredAssets = useMemo(() => {
-    if (cityFilter === "all") {
-      return assets;
+    let filtered = assets;
+
+    if (cityFilter !== "all") {
+      filtered = filtered.filter((asset) => asset.city === cityFilter);
     }
-    return assets.filter((asset) => asset.city === cityFilter);
-  }, [assets, cityFilter]);
+
+    if (searchTerm) {
+      const lowercasedTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(asset => 
+        asset.name.toLowerCase().includes(lowercasedTerm) ||
+        asset.codeId.toLowerCase().includes(lowercasedTerm)
+      );
+    }
+    
+    return filtered;
+  }, [assets, cityFilter, searchTerm]);
   
   const anomalies = useMemo(() => {
     if (dialogState?.type === 'anomalies') {
@@ -126,10 +139,20 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
 
   return (
     <>
-      <div className="flex items-center justify-end space-y-2 mb-4">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-2 mb-4">
+        <div className="relative w-full md:w-auto md:flex-grow">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Pesquisar por nome ou código..."
+              className="w-full rounded-lg bg-background pl-8 md:w-[300px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
            <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Filtrar por cidade" />
             </SelectTrigger>
             <SelectContent>
@@ -142,15 +165,15 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
           </Select>
           <Button variant="outline" onClick={handleExport} disabled={isPending}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download />}
-            Exportar CSV
+            Exportar
           </Button>
           <Button variant="outline" onClick={handleDetectAnomalies} disabled={isDetecting}>
             {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles />}
-             Detectar Anomalias
+             Anomalias
           </Button>
           <Button onClick={() => setDialogState({ type: "add" })}>
             <PlusCircle />
-            Adicionar Item
+            Adicionar
           </Button>
         </div>
       </div>
