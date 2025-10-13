@@ -14,15 +14,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Asset } from "@/lib/types";
+import type { Asset, Category } from "@/lib/types";
 import { addAsset, updateAsset } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const assetFormSchema = z.object({
   name: z.string().min(1, { message: "O nome é obrigatório." }),
   codeId: z.string().min(1, { message: "O código ID é obrigatório." }),
+  category: z.string().min(1, { message: "A categoria é obrigatória." }),
   city: z.string().min(1, { message: "A cidade/local é obrigatória." }),
   value: z.coerce.number().positive({ message: "O valor deve ser um número positivo." }),
   observation: z.string().optional(),
@@ -32,10 +34,11 @@ type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AddEditAssetFormProps {
   asset?: Asset;
+  categories: Category[];
   onSubmitSuccess: () => void;
 }
 
-export function AddEditAssetForm({ asset, onSubmitSuccess }: AddEditAssetFormProps) {
+export function AddEditAssetForm({ asset, categories, onSubmitSuccess }: AddEditAssetFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
@@ -44,6 +47,7 @@ export function AddEditAssetForm({ asset, onSubmitSuccess }: AddEditAssetFormPro
     defaultValues: asset || {
       name: "",
       codeId: "",
+      category: "",
       city: "",
       value: 0,
       observation: "",
@@ -108,33 +112,57 @@ export function AddEditAssetForm({ asset, onSubmitSuccess }: AddEditAssetFormPro
               </FormItem>
             )}
           />
-          <FormField
+           <FormField
             control={form.control}
-            name="value"
+            name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Valor (R$)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="Ex: 4500.00" {...field} />
-                </FormControl>
+                <FormLabel>Categoria</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="city"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cidade/Local</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: São Paulo" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+         <div className="grid grid-cols-2 gap-4">
+            <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                    <Input type="number" step="0.01" placeholder="Ex: 4500.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Cidade/Local</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: São Paulo" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         <FormField
           control={form.control}
           name="observation"

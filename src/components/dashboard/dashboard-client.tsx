@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import type { Asset, Anomaly } from "@/lib/types";
+import type { Asset, Anomaly, Category } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Sparkles, Loader2, Search } from "lucide-react";
+import { Download, PlusCircle, Sparkles, Loader2, Search, Settings } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -33,18 +33,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteAsset, runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import { ManageCategoriesDialog } from "./manage-categories-dialog";
 
 type DialogState =
   | { type: "add" }
   | { type: "edit"; asset: Asset }
   | { type: "delete"; asset: Asset }
   | { type: "anomalies"; anomalies: Anomaly[] }
+  | { type: "manage-categories" }
   | null;
 
-export default function DashboardClient({ initialAssets }: { initialAssets: Asset[] }) {
+export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [isPending, startTransition] = useTransition();
   const [isDetecting, startDetectingTransition] = useTransition();
@@ -56,11 +60,19 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
     return ["all", ...Array.from(cities)];
   }, [assets]);
 
+  const uniqueCategories = useMemo(() => {
+    return ["all", ...categories.map(c => c.name)];
+  }, [categories]);
+
   const filteredAssets = useMemo(() => {
     let filtered = assets;
 
     if (cityFilter !== "all") {
       filtered = filtered.filter((asset) => asset.city === cityFilter);
+    }
+    
+    if (categoryFilter !== "all") {
+        filtered = filtered.filter((asset) => asset.category === categoryFilter);
     }
 
     if (searchTerm) {
@@ -72,7 +84,7 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
     }
     
     return filtered;
-  }, [assets, cityFilter, searchTerm]);
+  }, [assets, cityFilter, categoryFilter, searchTerm]);
   
   const anomalies = useMemo(() => {
     if (dialogState?.type === 'anomalies') {
@@ -86,6 +98,11 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
     console.log("Form submitted, pretending to refresh data.");
     setDialogState(null);
   };
+  
+  const handleCategoriesUpdate = (updatedCategories: Category[]) => {
+    setCategories(updatedCategories);
+    // In a real app, you might want to refetch assets if category names change and are displayed
+  }
 
   const handleDelete = () => {
     if (dialogState?.type === "delete") {
@@ -150,9 +167,9 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
               onChange={(e) => setSearchTerm(e.target.value)}
             />
         </div>
-        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+        <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto justify-end">
            <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por cidade" />
             </SelectTrigger>
             <SelectContent>
@@ -163,18 +180,36 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleExport} disabled={isPending}>
-            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download />}
-            Exportar
-          </Button>
-          <Button variant="outline" onClick={handleDetectAnomalies} disabled={isDetecting}>
-            {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles />}
-             Anomalias
-          </Button>
-          <Button onClick={() => setDialogState({ type: "add" })}>
-            <PlusCircle />
-            Adicionar
-          </Button>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filtrar por categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              {uniqueCategories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category === "all" ? "Todas as Categorias" : category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handleExport} disabled={isPending} className="w-full sm:w-auto">
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="hidden sm:inline ml-2">Exportar</span>
+            </Button>
+            <Button variant="outline" onClick={handleDetectAnomalies} disabled={isDetecting} className="w-full sm:w-auto">
+                {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span className="hidden sm:inline ml-2">Anomalias</span>
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })}>
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Gerenciar Categorias</span>
+            </Button>
+            <Button onClick={() => setDialogState({ type: "add" })} className="w-full sm:w-auto">
+                <PlusCircle className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Adicionar</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -201,6 +236,7 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
           </DialogHeader>
           <AddEditAssetForm
             asset={dialogState?.type === "edit" ? dialogState.asset : undefined}
+            categories={categories}
             onSubmitSuccess={handleFormSubmit}
           />
         </DialogContent>
@@ -262,6 +298,14 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
            </div>
         </DialogContent>
       </Dialog>
+
+      {/* Manage Categories Dialog */}
+      <ManageCategoriesDialog
+        open={dialogState?.type === 'manage-categories'}
+        onOpenChange={(open) => !open && setDialogState(null)}
+        categories={categories}
+        onCategoriesChange={handleCategoriesUpdate}
+      />
     </>
   );
 }

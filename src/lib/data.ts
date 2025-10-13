@@ -1,4 +1,11 @@
-import type { Asset } from './types';
+import type { Asset, Category } from './types';
+
+export const mockCategories: Category[] = [
+  { id: '1', name: 'Eletrônicos' },
+  { id: '2', name: 'Mobiliário' },
+  { id: '3', name: 'Servidores' },
+  { id: '4', name: 'Outros' },
+];
 
 export const mockAssets: Asset[] = [
   {
@@ -8,6 +15,7 @@ export const mockAssets: Asset[] = [
     city: 'São Paulo',
     value: 4500.0,
     observation: 'Departamento de Marketing',
+    category: 'Eletrônicos',
   },
   {
     id: '2',
@@ -16,6 +24,7 @@ export const mockAssets: Asset[] = [
     city: 'Rio de Janeiro',
     value: 1200.0,
     observation: 'Equipe de Design',
+    category: 'Eletrônicos',
   },
   {
     id: '3',
@@ -23,6 +32,7 @@ export const mockAssets: Asset[] = [
     codeId: 'CAD-003',
     city: 'São Paulo',
     value: 800.0,
+    category: 'Mobiliário',
   },
   {
     id: '4',
@@ -31,6 +41,7 @@ export const mockAssets: Asset[] = [
     city: 'Belo Horizonte',
     value: 2500.0,
     observation: 'Sala de reuniões principal',
+    category: 'Eletrônicos',
   },
   {
     id: '5',
@@ -39,6 +50,7 @@ export const mockAssets: Asset[] = [
     city: 'São Paulo',
     value: 1800.0,
     observation: 'Uso compartilhado',
+    category: 'Eletrônicos',
   },
   {
     id: '6',
@@ -46,6 +58,7 @@ export const mockAssets: Asset[] = [
     codeId: 'MES-006',
     city: 'Rio de Janeiro',
     value: 1500.0,
+    category: 'Mobiliário',
   },
   {
     id: '7',
@@ -54,6 +67,7 @@ export const mockAssets: Asset[] = [
     city: 'Curitiba',
     value: 3200.0,
     observation: 'Diretoria',
+    category: 'Eletrônicos',
   },
     {
     id: '8',
@@ -62,6 +76,7 @@ export const mockAssets: Asset[] = [
     city: 'Curitiba',
     value: 15000.0,
     observation: 'Valor muito acima da média para notebooks',
+    category: 'Eletrônicos',
   },
   {
     id: '9',
@@ -70,6 +85,7 @@ export const mockAssets: Asset[] = [
     city: 'São Paulo',
     value: 25000.0,
     observation: 'Data Center',
+    category: 'Servidores',
   },
   {
     id: '10',
@@ -78,5 +94,6 @@ export const mockAssets: Asset[] = [
     city: 'Rio de Janeiro',
     value: 18000.0,
     observation: 'Equipe de produção de vídeo',
+    category: 'Outros',
   },
 ];

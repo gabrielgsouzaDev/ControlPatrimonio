@@ -45,6 +45,7 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
             <TableHead className="w-12"></TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Código ID</TableHead>
+            <TableHead>Categoria</TableHead>
             <TableHead>Cidade/Local</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Observação</TableHead>
@@ -54,7 +55,7 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
         <TableBody>
           {assets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 Nenhum item encontrado.
               </TableCell>
             </TableRow>
@@ -81,6 +82,7 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
                 <TableCell>
                   <Badge variant="outline">{asset.codeId}</Badge>
                 </TableCell>
+                <TableCell>{asset.category}</TableCell>
                 <TableCell>{asset.city}</TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(asset.value)}
