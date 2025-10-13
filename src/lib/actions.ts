@@ -1,35 +1,12 @@
 'use server';
 
-import { detectAssetAnomalies } from '@/ai/flows/detect-asset-anomalies';
 import { z } from 'zod';
-import type { Asset, Anomaly, Category, HistoryLog } from './types';
+import type { Asset, Category, HistoryLog, Location } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // This file is now for server-side actions that do not depend on user context from the client,
 // like AI operations or data exports based on provided data.
-
-export async function runAnomalyDetection(assets: Asset[]): Promise<Anomaly[]> {
-  try {
-    // Ensure all assets have a valid value
-    const itemsToAnalyze = assets.map(a => ({
-        name: a.name,
-        codeId: a.codeId,
-        city: a.city,
-        value: a.value,
-        observation: a.observation || '',
-    }));
-    const result = await detectAssetAnomalies({ items: itemsToAnalyze });
-    
-    // Anomalies are just returned to the client, not saved to DB from here.
-    const anomalies: Anomaly[] = result.anomalies.map(a => ({...a, id: '', assetId: ''}));
-    
-    return anomalies;
-  } catch (error) {
-    console.error('Error detecting anomalies:', error);
-    throw new Error('Falha ao detectar anomalias.');
-  }
-}
 
 export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   if (!assets.length) {

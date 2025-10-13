@@ -12,14 +12,6 @@ export type Asset = {
   userId?: string; // ID of the user who last modified/created
 };
 
-export type Anomaly = {
-  id: string;
-  assetId: string;
-  anomalyType: string;
-  description: string;
-  userId?: string; // ID of the user who owns the asset
-};
-
 export type Category = {
     id: string;
     name: string;

@@ -15,19 +15,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Edit, Trash2, AlertCircle } from "lucide-react";
-import type { Asset, Anomaly } from "@/lib/types";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import type { Asset } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AssetTableProps {
   assets: Asset[];
-  anomalies: Anomaly[];
   onEdit: (asset: Asset) => void;
   onDelete: (asset: Asset) => void;
 }
 
-export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTableProps) {
+export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -35,14 +33,11 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
     }).format(value);
   };
   
-  const anomalyMap = new Map(anomalies.map(a => [a.codeId, a]));
-
   return (
     <div className="rounded-lg border shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12"></TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Código ID</TableHead>
             <TableHead>Categoria</TableHead>
@@ -55,29 +50,13 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
         <TableBody>
           {assets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 Nenhum item encontrado.
               </TableCell>
             </TableRow>
           ) : (
-            assets.map((asset) => {
-              const anomaly = anomalyMap.get(asset.codeId);
-              return (
-              <TableRow key={asset.id} className={anomaly ? "bg-destructive/10" : ""}>
-                <TableCell>
-                  {anomaly && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <AlertCircle className="h-5 w-5 text-destructive" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{anomaly.description}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </TableCell>
+            assets.map((asset) => (
+              <TableRow key={asset.id}>
                 <TableCell className="font-medium">{asset.name}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{asset.codeId}</Badge>
@@ -109,7 +88,7 @@ export function AssetTable({ assets, anomalies, onEdit, onDelete }: AssetTablePr
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            )})
+            ))
           )}
         </TableBody>
       </Table>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from "react";
-import type { Asset, Anomaly, Category, Location } from "@/lib/types";
+import { useState, useMemo, useTransition } from "react";
+import type { Asset, Category, Location } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Sparkles, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin } from "lucide-react";
+import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteAsset } from "@/lib/mutations";
-import { runAnomalyDetection, exportAssetsToCsv } from "@/lib/actions";
+import { exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { ManageLocationsDialog } from "./manage-locations-dialog";
@@ -44,7 +44,6 @@ type DialogState =
   | { type: "add" }
   | { type: "edit"; asset: Asset }
   | { type: "delete"; asset: Asset }
-  | { type: "anomalies"; anomalies: Anomaly[] }
   | { type: "manage-categories" }
   | { type: "manage-locations" }
   | null;
@@ -55,7 +54,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [isPending, startTransition] = useTransition();
-  const [isDetecting, startDetectingTransition] = useTransition();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -115,13 +113,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     }));
 
   }, [assets, categories, locations, cityFilter, categoryFilter, searchTerm]);
-  
-  const anomalies = useMemo(() => {
-    if (dialogState?.type === 'anomalies') {
-        return dialogState.anomalies;
-    }
-    return [];
-  }, [dialogState]);
 
   const handleFormSubmit = () => {
     setDialogState(null);
@@ -151,31 +142,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     }
   };
 
-  const handleDetectAnomalies = () => {
-    if (!assets || assets.length === 0) {
-        toast({ title: "Sem Dados", description: "Não há itens de patrimônio para analisar." });
-        return;
-    }
-    startDetectingTransition(async () => {
-        try {
-            const result = await runAnomalyDetection(assets);
-            const detectedAnomalies = result.map((a: any) => ({
-                id: a.codeId, // Assuming codeId can serve as a temporary unique key
-                assetId: assets.find(asset => asset.codeId === a.codeId)?.id || '',
-                ...a
-            }));
-
-            if (detectedAnomalies.length > 0) {
-                setDialogState({ type: 'anomalies', anomalies: detectedAnomalies });
-            } else {
-                toast({ title: "Nenhuma Anomalia Encontrada", description: "A análise foi concluída e nenhum item suspeito foi detectado." });
-            }
-        } catch (error) {
-            toast({ variant: "destructive", title: "Erro na Análise", description: "Não foi possível concluir a detecção de anomalias." });
-        }
-    });
-  };
-  
   const handleExportCsv = () => {
     startTransition(async () => {
         try {
@@ -273,10 +239,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="outline" onClick={handleDetectAnomalies} disabled={isDetecting} className="w-full sm:w-auto">
-                {isDetecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                <span className="hidden sm:inline ml-2">Analisar com IA</span>
-            </Button>
             <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })}>
                 <MapPin className="h-4 w-4" />
                 <span className="sr-only">Gerenciar Locais</span>
@@ -295,7 +257,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
       <AssetTable
         assets={filteredAssets}
-        anomalies={anomalies}
         onEdit={(asset) => setDialogState({ type: "edit", asset })}
         onDelete={(asset) => setDialogState({ type: "delete", asset })}
       />
@@ -346,40 +307,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Anomalies Found Dialog */}
-      <Dialog
-        open={dialogState?.type === "anomalies"}
-        onOpenChange={(open) => !open && setDialogState(null)}
-      >
-        <DialogContent className="sm:max-w-lg">
-           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="text-primary"/> Anomalias Detectadas
-            </DialogTitle>
-            <DialogDescription>
-              A análise com IA identificou os seguintes itens que podem exigir sua atenção.
-            </DialogDescription>
-          </DialogHeader>
-           <div className="max-h-[60vh] overflow-y-auto pr-4">
-                <ul className="space-y-4">
-                    {dialogState?.type === 'anomalies' && dialogState.anomalies.map((anomaly, index) => (
-                        <li key={index} className="p-4 rounded-md border bg-card">
-                            <p className="font-semibold text-foreground">
-                                Item (ID): <span className="font-normal text-muted-foreground">{anomaly.id}</span>
-                            </p>
-                             <p className="font-semibold text-foreground capitalize">
-                                Tipo: <span className="font-normal text-muted-foreground">{anomaly.anomalyType}</span>
-                            </p>
-                             <p className="font-semibold text-foreground">
-                                Descrição: <span className="font-normal text-muted-foreground">{anomaly.description}</span>
-                            </p>
-                        </li>
-                    ))}
-                </ul>
-           </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Manage Categories Dialog */}
       <ManageCategoriesDialog
         open={dialogState?.type === 'manage-categories'}
