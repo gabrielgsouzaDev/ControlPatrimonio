@@ -126,13 +126,7 @@ export default function DashboardClient({ initialAssets }: { initialAssets: Asse
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2 mb-4">
-        <div>
-          <h2 className="text-3xl font-headline tracking-tight">Patrimônio</h2>
-          <p className="text-muted-foreground">
-            Gerencie os itens do seu inventário.
-          </p>
-        </div>
+      <div className="flex items-center justify-end space-y-2 mb-4">
         <div className="flex items-center space-x-2">
            <Select value={cityFilter} onValueChange={setCityFilter}>
             <SelectTrigger className="w-[180px]">
