@@ -19,11 +19,7 @@ import { exportHistoryToCsv } from "@/lib/actions";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 
-export default function HistoryClient({
-  initialHistory,
-}: {
-  initialHistory: HistoryLog[];
-}) {
+export default function HistoryClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");

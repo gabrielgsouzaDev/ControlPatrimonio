@@ -116,25 +116,25 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }, [dialogState]);
 
   const handleFormSubmit = () => {
-    // Data is real-time, no need to manually refresh
     setDialogState(null);
   };
   
   const handleCategoriesUpdate = () => {
-     // Data is real-time, no need to manually refresh
+     // Categories are updated in real-time by useCollection
   }
 
   const handleDelete = () => {
     if (dialogState?.type === "delete" && user && firestore) {
-      startTransition(async () => {
-        try {
-          await deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id);
-          setDialogState(null);
-          toast({ title: "Sucesso", description: "Item excluído com sucesso." });
-        } catch(error: any) {
-          console.error("Error deleting asset:", error);
-          toast({ variant: "destructive", title: "Erro ao Excluir", description: error.message || "Não foi possível excluir o item."});
-        }
+      startTransition(() => {
+        deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id)
+          .then(() => {
+              setDialogState(null);
+              toast({ title: "Sucesso", description: "Item excluído com sucesso." });
+          })
+          .catch((error: any) => {
+              console.error("Error deleting asset:", error);
+              toast({ variant: "destructive", title: "Erro ao Excluir", description: error.message || "Não foi possível excluir o item."});
+          })
       });
     }
   };
@@ -146,7 +146,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     }
     startDetectingTransition(async () => {
         try {
-            const detectedAnomalies = await runAnomalyDetection(assets);
+            const result = await runAnomalyDetection(assets);
+            const detectedAnomalies = result.map((a: any) => ({
+                id: a.codeId, // Assuming codeId can serve as a temporary unique key
+                assetId: assets.find(asset => asset.codeId === a.codeId)?.id || '',
+                ...a
+            }));
+
             if (detectedAnomalies.length > 0) {
                 setDialogState({ type: 'anomalies', anomalies: detectedAnomalies });
             } else {
@@ -342,7 +348,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                     {dialogState?.type === 'anomalies' && dialogState.anomalies.map((anomaly, index) => (
                         <li key={index} className="p-4 rounded-md border bg-card">
                             <p className="font-semibold text-foreground">
-                                Item (ID): <span className="font-normal text-muted-foreground">{anomaly.codeId}</span>
+                                Item (ID): <span className="font-normal text-muted-foreground">{anomaly.id}</span>
                             </p>
                              <p className="font-semibold text-foreground capitalize">
                                 Tipo: <span className="font-normal text-muted-foreground">{anomaly.anomalyType}</span>

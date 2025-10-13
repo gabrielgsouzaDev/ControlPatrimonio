@@ -129,35 +129,6 @@
             }
         },
         "required": ["id", "assetId", "assetName", "codeId", "action", "details", "userId", "userDisplayName", "timestamp"]
-    },
-    "Anomaly": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Anomaly",
-        "type": "object",
-        "description": "Represents an anomaly detected for an asset.",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "Unique identifier for the anomaly."
-            },
-            "assetId": {
-                "type": "string",
-                "description": "ID of the asset with the anomaly."
-            },
-            "anomalyType": {
-                "type": "string",
-                "description": "Type of anomaly (e.g., 'value', 'location')."
-            },
-            "description": {
-                "type": "string",
-                "description": "Description of the anomaly."
-            },
-            "userId": {
-              "type": "string",
-              "description": "ID of the user who owns the asset related to this anomaly."
-            }
-        },
-        "required": ["id", "assetId", "anomalyType", "description", "userId"]
     }
   },
   "auth": {
@@ -175,7 +146,7 @@
           "schema": {
             "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores individual user profiles."
+          "description": "Stores individual user profiles, private to each user."
         }
       },
       {
@@ -185,17 +156,7 @@
           "schema": {
             "$ref": "#/entities/Asset"
           },
-          "description": "Stores the global list of all assets."
-        }
-      },
-      {
-        "path": "/assets/{assetId}/anomalies/{anomalyId}",
-        "definition": {
-            "entityName": "Anomaly",
-            "schema": {
-                "$ref": "#/entities/Anomaly"
-            },
-            "description": "Stores anomalies detected for a specific asset."
+          "description": "Stores the global list of all assets, accessible by any authenticated user."
         }
       },
       {
@@ -205,7 +166,7 @@
           "schema": {
             "$ref": "#/entities/Category"
           },
-          "description": "Stores the global list of asset categories."
+          "description": "Stores the global list of asset categories, accessible by any authenticated user."
         }
       },
       {
@@ -215,10 +176,10 @@
           "schema": {
             "$ref": "#/entities/HistoryLog"
           },
-          "description": "Stores the global change history for all assets."
+          "description": "Stores the global change history for all assets, accessible by any authenticated user."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be global and shared. All core data collections (assets, categories, history) are at the root level, allowing any authenticated user to access them. User-specific data, like profiles, is stored under the /users/{userId} path to maintain privacy for account settings. This model supports a collaborative environment where all users work on a single, unified dataset."
+    "reasoning": "The Firestore structure is designed for a collaborative, global inventory. All core data collections (assets, categories, history) are at the root level, allowing any authenticated user to access them. User-specific data (profiles) is stored under /users/{userId} to keep account settings private. This model supports a multi-user environment where all users work on a single, unified dataset."
   }
 }

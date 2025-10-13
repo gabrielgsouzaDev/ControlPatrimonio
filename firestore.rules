@@ -1,127 +1,105 @@
 /**
- * @fileoverview Firestore Security Rules for AssetFlow application.
- *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model for all data.
- * All data is nested under `/users/{userId}` to ensure that only the authenticated user can access their own data.
- * Assets, categories, and history logs are all stored under the user's document.
- * Anomaly documents are stored under their corresponding asset document.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a mixed security model, balancing public data access with private user profiles.
  *
  * Data Structure:
- * /users/{userId} (UserProfile)
- * /users/{userId}/assets/{assetId} (Asset)
- * /users/{userId}/categories/{categoryId} (Category)
- * /users/{userId}/history/{historyId} (HistoryLog)
- * /users/{userId}/assets/{assetId}/anomalies/{anomalyId} (Anomaly)
+ * - /assets/{assetId}: Shared asset data, accessible to all authenticated users.
+ * - /categories/{categoryId}: Shared category data, accessible to all authenticated users.
+ * - /history/{historyId}: Shared history log data, accessible to all authenticated users.
+ * - /users/{userId}: Private user profile data, accessible only to the owning user.
+ * - /assets/{assetId}/anomalies/{anomalyId}: Anomalies for assets, accessible to all authenticated users.
  *
  * Key Security Decisions:
- * - Strict user-ownership: Users can only read and write data under their own user ID.
- * - All listing operations are restricted to the owner.
- * - Data validation is relaxed in the prototyping phase, focusing on ownership and relational integrity.
- *
- * Denormalization for Authorization:
- *  - Each document (Asset, Category, HistoryLog, Anomaly) contains a `userId` field that matches the authenticated user's UID,
- *    allowing for simple `isOwner()` checks without additional reads.
- *
- * Structural Segregation:
- *  - All user-specific data is stored under the /users/{userId} path, preventing accidental public exposure.
+ * - Authenticated User Required: All access to shared data (assets, categories, history) requires the user to be authenticated.
+ * - User Ownership: User profiles are strictly owned by the user, enforced through the 'isOwner' helper function.
+ * - No User Listing: Listing all users is disallowed to protect user privacy.
+ * - Denormalization for Audit: Documents in `/assets`, `/categories`, `/history` collections contain a `userId` field to track the user who created or last modified the document.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Check if the user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if the user is the owner of the resource
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     /**
-     * @description Allows users to read and write their own user profile data.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their profile with matching userId in the document.
-     * @allow (get, update, delete) User with UID 'user123' can get, update, and delete their own profile.
-     * @deny (create) User with UID 'user456' cannot create a profile with userId 'user123'.
-     * @deny (get, update, delete) User with UID 'user456' cannot get, update, or delete the profile of user 'user123'.
+     * @allow (create) User with UID 'user123' can create their profile if request.auth.uid == 'user123'.
+     * @allow (get) User with UID 'user123' can read their profile if request.auth.uid == 'user123'.
+     * @allow (update) User with UID 'user123' can update their profile if request.auth.uid == 'user123'.
+     * @allow (delete) User with UID 'user123' can delete their profile if request.auth.uid == 'user123'.
+     * @deny (create) User with UID 'user456' cannot create profile for 'user123'.
+     * @deny (get) User with UID 'user456' cannot read profile of 'user123'.
      * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get, update, delete: if isSignedIn() && isOwner(userId);
+      allow list: if false; // Prevents listing all users
     }
 
     /**
-     * @description Allows users to manage their own assets.
-     * @path /users/{userId}/assets/{assetId}
-     * @allow (create) User with UID 'user123' can create an asset under their profile.
-     * @allow (get, list, update, delete) User with UID 'user123' can get, list, update, and delete their own assets.
-     * @deny (create) User with UID 'user456' cannot create an asset under user 'user123's profile.
-     * @deny (get, list, update, delete) User with UID 'user456' cannot get, list, update, or delete assets under user 'user123's profile.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @description Controls access to asset documents.
+     * @path /assets/{assetId}
+     * @allow (create) Authenticated user can create an asset.
+     * @allow (get) Any user can read an asset.
+     * @allow (update) Authenticated user can update an asset.
+     * @allow (delete) Authenticated user can delete an asset.
+     * @deny (create) Unauthenticated user cannot create an asset.
+     * @principle Authenticated users can manage shared assets.
      */
-    match /users/{userId}/assets/{assetId} {
-      allow get: if request.auth.uid == userId;
-      allow list: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
-      allow delete: if request.auth.uid == userId;
+    match /assets/{assetId} {
+      allow create, get, list, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Allows users to manage their own categories.
-     * @path /users/{userId}/categories/{categoryId}
-     * @allow (create) User with UID 'user123' can create a category under their profile.
-     * @allow (get, list, update, delete) User with UID 'user123' can get, list, update, and delete their own categories.
-     * @deny (create) User with UID 'user456' cannot create a category under user 'user123's profile.
-     * @deny (get, list, update, delete) User with UID 'user456' cannot get, list, update, or delete categories under user 'user123's profile.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @description Controls access to anomaly documents for specific assets.
+     * @path /assets/{assetId}/anomalies/{anomalyId}
+     * @allow (create) Authenticated user can create an anomaly.
+     * @allow (get) Any user can read an anomaly.
+     * @allow (update) Authenticated user can update an anomaly.
+     * @allow (delete) Authenticated user can delete an anomaly.
+     * @deny (create) Unauthenticated user cannot create an anomaly.
+     * @principle Authenticated users can manage anomalies.
      */
-    match /users/{userId}/categories/{categoryId} {
-      allow get: if request.auth.uid == userId;
-      allow list: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
-      allow delete: if request.auth.uid == userId;
+    match /assets/{assetId}/anomalies/{anomalyId} {
+      allow create, get, list, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Allows users to view their own history logs.
-     * @path /users/{userId}/history/{historyId}
-     * @allow (create) User with UID 'user123' can create a history log under their profile.
-     * @allow (get, list, update, delete) User with UID 'user123' can get, list, update, and delete their own history logs.
-     * @deny (create) User with UID 'user456' cannot create a history log under user 'user123's profile.
-     * @deny (get, list, update, delete) User with UID 'user456' cannot get, list, update, or delete history logs under user 'user123's profile.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @description Controls access to category documents.
+     * @path /categories/{categoryId}
+     * @allow (create) Authenticated user can create a category.
+     * @allow (get) Any user can read a category.
+     * @allow (update) Authenticated user can update a category.
+     * @allow (delete) Authenticated user can delete a category.
+     * @deny (create) Unauthenticated user cannot create a category.
+     * @principle Authenticated users can manage shared categories.
      */
-    match /users/{userId}/history/{historyId} {
-      allow get: if request.auth.uid == userId;
-      allow list: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
-      allow delete: if request.auth.uid == userId;
+    match /categories/{categoryId} {
+      allow create, get, list, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Allows users to manage anomalies associated with their assets.
-     * @path /users/{userId}/assets/{assetId}/anomalies/{anomalyId}
-     * @allow (create) User with UID 'user123' can create an anomaly for their asset.
-     * @allow (get, list, update, delete) User with UID 'user123' can get, list, update, and delete anomalies for their assets.
-     * @deny (create) User with UID 'user456' cannot create an anomaly under user 'user123's asset.
-     * @deny (get, list, update, delete) User with UID 'user456' cannot get, list, update, or delete anomalies under user 'user123's asset.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @description Controls access to history log documents.
+     * @path /history/{historyId}
+     * @allow (create) Authenticated user can create a history log entry.
+     * @allow (get) Any user can read a history log entry.
+     * @allow (update) Authenticated user can update a history log entry.
+     * @allow (delete) Authenticated user can delete a history log entry.
+     * @deny (create) Unauthenticated user cannot create a history log entry.
+     * @principle Authenticated users can manage shared history logs.
      */
-    match /users/{userId}/assets/{assetId}/anomalies/{anomalyId} {
-        allow get: if request.auth.uid == userId;
-        allow list: if request.auth.uid == userId;
-        allow create: if request.auth.uid == userId;
-        allow update: if request.auth.uid == userId;
-        allow delete: if request.auth.uid == userId;
+    match /history/{historyId} {
+      allow create, get, list, update, delete: if isSignedIn();
     }
   }
 }
