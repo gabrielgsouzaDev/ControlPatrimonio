@@ -39,6 +39,7 @@ import { ManageLocationsDialog } from "./manage-locations-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection } from "firebase/firestore";
+import { exportAssetsToPdf } from "@/lib/pdf-export";
 
 type DialogState =
   | { type: "add" }
@@ -167,9 +168,20 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }
 
   const handleExportPdf = () => {
-    toast({
-      title: "Funcionalidade em breve",
-      description: "A exportação para PDF ainda não está disponível.",
+    startTransition(() => {
+      try {
+        exportAssetsToPdf(filteredAssets);
+        toast({
+          title: "Exportação de PDF",
+          description: "O arquivo PDF foi gerado e o download será iniciado.",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Exportação Falhou",
+          description: "Não foi possível gerar o arquivo PDF.",
+        });
+      }
     });
   };
 

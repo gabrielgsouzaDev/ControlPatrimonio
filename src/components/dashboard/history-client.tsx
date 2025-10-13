@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { exportHistoryToCsv } from "@/lib/actions";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
+import { exportHistoryToPdf } from "@/lib/pdf-export";
 
 export default function HistoryClient() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -91,9 +92,20 @@ export default function HistoryClient() {
   }
 
   const handleExportPdf = () => {
-    toast({
-      title: "Funcionalidade em breve",
-      description: "A exportação para PDF ainda não está disponível.",
+    startTransition(() => {
+      try {
+        exportHistoryToPdf(filteredHistory);
+        toast({
+          title: "Exportação de PDF",
+          description: "O arquivo PDF foi gerado e o download será iniciado.",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Exportação Falhou",
+          description: "Não foi possível gerar o arquivo PDF.",
+        });
+      }
     });
   };
 
