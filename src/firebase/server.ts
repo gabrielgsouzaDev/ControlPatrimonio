@@ -9,7 +9,7 @@ import { firebaseConfig } from './config';
 export async function initializeFirebase(): Promise<{ auth: ReturnType<typeof getAuth>, firestore: ReturnType<typeof getFirestore>, app: App }> {
   if (!getApps().length) {
     const app = initializeApp({
-        credential: undefined, // Let ADC find the credentials
+        // Let ADC find the credentials by not providing the credential property
         projectId: firebaseConfig.projectId,
     });
     
