@@ -12,12 +12,18 @@ import type { HistoryLog } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState, useEffect } from "react";
 
 interface HistoryTableProps {
   history: HistoryLog[];
 }
 
 export function HistoryTable({ history }: HistoryTableProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const getActionBadgeVariant = (action: HistoryLog['action']) => {
     switch(action) {
@@ -27,6 +33,8 @@ export function HistoryTable({ history }: HistoryTableProps) {
         default: return 'outline';
     }
   }
+
+  const sortedHistory = [...history].sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
     <div className="rounded-lg border shadow-sm">
@@ -49,7 +57,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
               </TableCell>
             </TableRow>
           ) : (
-            history.sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime()).map((log) => (
+            sortedHistory.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="font-medium">{log.assetName}</TableCell>
                 <TableCell>
@@ -61,7 +69,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
                 <TableCell>{log.user}</TableCell>
                 <TableCell className="text-muted-foreground">{log.details}</TableCell>
                 <TableCell className="text-right">
-                  {format(log.timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                  {isClient ? format(log.timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
                 </TableCell>
               </TableRow>
             ))
