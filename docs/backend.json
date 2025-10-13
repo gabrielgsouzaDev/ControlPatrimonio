@@ -1,25 +1,26 @@
 {
   "entities": {
-    "User": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
+      "title": "User Profile",
       "type": "object",
-      "description": "Represents a user of the AssetFlow application.",
+      "description": "Represents a user's profile in the AssetFlow application.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user, matches Firebase Auth UID."
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
         }
       },
-      "required": [
-        "id",
-        "email"
-      ]
+      "required": ["id", "email", "name"]
     },
     "Asset": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -39,7 +40,7 @@
           "type": "string",
           "description": "Code or ID associated with the asset."
         },
-        "location": {
+        "city": {
           "type": "string",
           "description": "City or location where the asset is stored."
         },
@@ -53,59 +54,87 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Asset)"
+          "description": "ID of the user who owns this asset."
+        },
+        "categoryId": {
+            "type": "string",
+            "description": "ID of the category this asset belongs to."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "codeId",
-        "location",
-        "value",
-        "userId"
-      ]
+      "required": ["id", "name", "codeId", "city", "value", "userId", "categoryId"]
     },
-    "Anomaly": {
+    "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Anomaly",
+      "title": "Category",
       "type": "object",
-      "description": "Represents a detected anomaly in an asset's data.",
+      "description": "Represents a category for assets.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the anomaly."
+          "description": "Unique identifier for the category."
         },
-        "assetId": {
+        "name": {
           "type": "string",
-          "description": "Reference to Asset. (Relationship: Asset 1:N Anomaly)"
+          "description": "Name of the category."
         },
-        "type": {
+        "userId": {
           "type": "string",
-          "description": "Type of anomaly detected (e.g., value change, location change)."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the anomaly and potential reasons."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp when the anomaly was detected.",
-          "format": "date-time"
+          "description": "ID of the user who created this category."
         }
       },
-      "required": [
-        "id",
-        "assetId",
-        "type",
-        "description",
-        "timestamp"
-      ]
+      "required": ["id", "name", "userId"]
+    },
+    "HistoryLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "History Log",
+        "type": "object",
+        "description": "Represents a log entry for a change made to an asset.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the history log entry."
+            },
+            "assetId": {
+                "type": "string",
+                "description": "ID of the asset that was changed."
+            },
+            "assetName": {
+                "type": "string",
+                "description": "Name of the asset at the time of the change."
+            },
+            "codeId": {
+                "type": "string",
+                "description": "Code ID of the asset."
+            },
+            "action": {
+                "type": "string",
+                "enum": ["Criado", "Atualizado", "Excluído"]
+            },
+            "details": {
+                "type": "string",
+                "description": "Description of what was changed."
+            },
+            "userId": {
+                "type": "string",
+                "description": "ID of the user who performed the action."
+            },
+            "userDisplayName": {
+                "type": "string",
+                "description": "Display name of the user who performed the action."
+            },
+            "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp when the action occurred."
+            }
+        },
+        "required": ["id", "assetId", "assetName", "codeId", "action", "details", "userId", "userDisplayName", "timestamp"]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google"
     ]
   },
   "firestore": {
@@ -113,17 +142,11 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "UserProfile",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores user profiles.  The 'userId' parameter corresponds to the Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
-            }
-          ]
+          "description": "Stores user profiles. The 'userId' corresponds to the Firebase Auth UID."
         }
       },
       {
@@ -131,46 +154,32 @@
         "definition": {
           "entityName": "Asset",
           "schema": {
-            "$ref": "#/backend/entities/Asset"
+            "$ref": "#/entities/Asset"
           },
-          "description": "Stores asset information for each user. The 'userId' parameter corresponds to the Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
-            },
-            {
-              "name": "assetId",
-              "description": "The unique identifier for the asset."
-            }
-          ]
+          "description": "Stores asset information for each user."
         }
       },
       {
-        "path": "/users/{userId}/assets/{assetId}/anomalies/{anomalyId}",
+        "path": "/users/{userId}/categories/{categoryId}",
         "definition": {
-          "entityName": "Anomaly",
+          "entityName": "Category",
           "schema": {
-            "$ref": "#/backend/entities/Anomaly"
+            "$ref": "#/entities/Category"
           },
-          "description": "Stores anomaly data for each asset. The 'userId' parameter corresponds to the Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
-            },
-            {
-              "name": "assetId",
-              "description": "The unique identifier for the asset."
-            },
-            {
-              "name": "anomalyId",
-              "description": "The unique identifier for the anomaly."
-            }
-          ]
+          "description": "Stores asset categories created by each user."
+        }
+      },
+      {
+        "path": "/users/{userId}/history/{historyId}",
+        "definition": {
+          "entityName": "HistoryLog",
+          "schema": {
+            "$ref": "#/entities/HistoryLog"
+          },
+          "description": "Stores change history logs for each user's assets."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage assets and detect anomalies, focusing on user-specific data and straightforward security rules. It uses path-based ownership for assets and anomalies to simplify access control. Denormalization is not strictly required here because there's no collaborative data or complex role-based access beyond ownership. Each user has their own assets, and each asset has its own anomalies. This naturally segregates data, simplifying queries and security rules.\n\nAssets are stored under `/users/{userId}/assets/{assetId}`, establishing clear ownership. Anomaly documents are stored under `/users/{userId}/assets/{assetId}/anomalies/{anomalyId}` enabling to query all anomalies for an asset, or all assets for an user.\n\nThis design prioritizes security by ensuring all data access is scoped to the user's ID, avoiding the need for complex rules or `get()` operations. List operations are secure because data is segregated by user ID."
+    "reasoning": "The Firestore structure is designed to be user-centric, ensuring data privacy and security by nesting all user-generated content (assets, categories, history) under their unique user ID. This path-based ownership model (`/users/{userId}/...`) is fundamental for writing simple and effective security rules, as it allows us to easily grant access based on the authenticated user's UID. This design prevents data leakage between users and simplifies queries, as we can fetch all data for a specific user from a predictable root path."
   }
 }
