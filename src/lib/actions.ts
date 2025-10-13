@@ -2,10 +2,10 @@
 
 import { detectAssetAnomalies } from '@/ai/flows/detect-asset-anomalies';
 import { z } from 'zod';
-import type { Asset, Anomaly, Category } from './types';
+import type { Asset, Anomaly, Category, HistoryLog } from './types';
 
 // Placeholder for a real database call
-import { mockAssets, mockCategories } from './data';
+import { mockAssets, mockCategories, mockHistory } from './data';
 
 const assetSchema = z.object({
   id: z.string().optional(),
@@ -131,4 +131,9 @@ export async function deleteCategory(id: string): Promise<{ success: true }> {
    if (index === -1) throw new Error("Categoria não encontrada.");
    mockCategories.splice(index, 1);
   return { success: true };
+}
+
+// History Actions
+export async function getHistory(): Promise<HistoryLog[]> {
+    return Promise.resolve(mockHistory);
 }

@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Building2, LogOut, Settings, Landmark, LayoutDashboard } from 'lucide-react';
+import { Building2, LogOut, Settings, Landmark, LayoutDashboard, History } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +75,18 @@ export default function DashboardLayout({
                 <Link href="/dashboard/patrimonio">
                   <Building2 />
                   <span>Patrimônio</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/dashboard/historico'}
+                tooltip={{ children: 'Histórico' }}
+              >
+                <Link href="/dashboard/historico">
+                  <History />
+                  <span>Histórico</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

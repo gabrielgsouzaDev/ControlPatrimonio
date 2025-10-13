@@ -1,4 +1,4 @@
-import type { Asset, Category } from './types';
+import type { Asset, Category, HistoryLog } from './types';
 
 export const mockCategories: Category[] = [
   { id: '1', name: 'Eletrônicos' },
@@ -97,3 +97,42 @@ export const mockAssets: Asset[] = [
     category: 'Outros',
   },
 ];
+
+export const mockHistory: HistoryLog[] = [
+    { 
+        id: '1', 
+        assetName: 'Notebook Dell Inspiron', 
+        codeId: 'NTB-001',
+        action: 'Criado', 
+        user: 'admin@email.com', 
+        timestamp: new Date('2023-10-26T10:00:00Z'), 
+        details: 'Item novo adicionado ao inventário.'
+    },
+    { 
+        id: '2', 
+        assetName: 'Monitor LG 27"', 
+        codeId: 'MON-002',
+        action: 'Atualizado', 
+        user: 'admin@email.com', 
+        timestamp: new Date('2023-10-27T14:30:00Z'),
+        details: 'Valor alterado de R$1100.00 para R$1200.00.'
+    },
+     { 
+        id: '3', 
+        assetName: 'Cadeira de Escritório', 
+        codeId: 'CAD-003',
+        action: 'Excluído', 
+        user: 'supervisor@email.com', 
+        timestamp: new Date('2023-10-28T09:15:00Z'),
+        details: 'Item descartado por avaria.'
+    },
+    { 
+        id: '4', 
+        assetName: 'Servidor Dell PowerEdge', 
+        codeId: 'SRV-009',
+        action: 'Atualizado', 
+        user: 'ti@email.com', 
+        timestamp: new Date('2023-10-29T11:00:00Z'),
+        details: 'Observação "Data Center" adicionada.'
+    }
+]

@@ -18,3 +18,13 @@ export type Category = {
     id: string;
     name: string;
 };
+
+export type HistoryLog = {
+    id: string;
+    assetName: string;
+    codeId: string;
+    action: 'Criado' | 'Atualizado' | 'Excluído';
+    user: string;
+    timestamp: Date;
+    details: string;
+}
