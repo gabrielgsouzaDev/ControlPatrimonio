@@ -32,6 +32,8 @@ export type HistoryLog = {
     action: 'Criado' | 'Atualizado' | 'Excluído';
     userId: string;
     userDisplayName: string;
-    timestamp: Date | Timestamp;
+    timestamp: Date | Timestamp | any;
     details: string;
 }
+
+    

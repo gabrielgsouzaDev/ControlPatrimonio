@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2 } from 'lucide-react';
+import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -16,9 +16,10 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Asset, Category, Location } from '@/lib/types';
+import { collection, Timestamp } from 'firebase/firestore';
+import type { Asset, Category, Location, HistoryLog } from '@/lib/types';
 import { useMemo } from 'react';
+import { subMonths } from 'date-fns';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
@@ -28,17 +29,22 @@ export default function DashboardPage() {
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
   const locationsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'locations') : null), [firestore]);
+  const historyQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'history') : null), [firestore]);
 
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
   const { data: locations, isLoading: isLoadingLocations } = useCollection<Location>(locationsQuery);
+  const { data: history, isLoading: isLoadingHistory } = useCollection<HistoryLog>(historyQuery);
 
   const dashboardData = useMemo(() => {
-    if (!assets || !categories || !locations) {
+    if (!assets || !categories || !locations || !history) {
       return {
         totalAssets: 0,
         totalValue: 0,
         totalCities: 0,
+        createdLastMonth: 0,
+        updatedLastMonth: 0,
+        deletedLastMonth: 0,
         barChartData: [],
         pieChartData: [],
       };
@@ -48,6 +54,17 @@ export default function DashboardPage() {
     const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
     const totalCities = new Set(assets.map(asset => asset.city)).size;
     
+    // History stats
+    const oneMonthAgo = subMonths(new Date(), 1);
+    const historyLastMonth = history.filter(log => {
+        const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
+        return logDate > oneMonthAgo;
+    });
+
+    const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
+    const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
+    const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Excluído').length;
+
     const locationMap = new Map(locations.map(loc => [loc.id, loc.name]));
 
     const valueByCity = assets.reduce((acc, asset) => {
@@ -71,10 +88,13 @@ export default function DashboardPage() {
       totalAssets,
       totalValue,
       totalCities,
+      createdLastMonth,
+      updatedLastMonth,
+      deletedLastMonth,
       barChartData,
       pieChartData,
     };
-  }, [assets, categories, locations]);
+  }, [assets, categories, locations, history]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -83,7 +103,7 @@ export default function DashboardPage() {
     }).format(value);
   };
   
-  if (isLoadingAssets || isLoadingCategories || isLoadingLocations) {
+  if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -123,6 +143,38 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData.totalCities}</div>
             <p className="text-xs text-muted-foreground">Cidades com patrimônio alocado.</p>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Itens Criados (Último Mês)</CardTitle>
+            <PlusSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.createdLastMonth}</div>
+            <p className="text-xs text-muted-foreground">Novos itens no último mês.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Itens Atualizados (Último Mês)</CardTitle>
+            <PenSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
+            <p className="text-xs text-muted-foreground">Atualizações no último mês.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Itens Excluídos (Último Mês)</CardTitle>
+            <MinusSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
+            <p className="text-xs text-muted-foreground">Remoções no último mês.</p>
           </CardContent>
         </Card>
       </div>
@@ -185,3 +237,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
