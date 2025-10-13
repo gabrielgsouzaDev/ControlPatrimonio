@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import type { HistoryLog } from "@/lib/types";
 import { HistoryTable } from "@/components/dashboard/history-table";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { exportHistoryToCsv } from "@/lib/actions";
 
 export default function HistoryClient({
   initialHistory,
@@ -22,6 +26,8 @@ export default function HistoryClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const uniqueActions = useMemo(() => {
     const actions = new Set(history.map((log) => log.action));
@@ -55,6 +61,38 @@ export default function HistoryClient({
 
     return filtered;
   }, [history, actionFilter, userFilter, searchTerm]);
+
+  const handleExportCsv = () => {
+    startTransition(async () => {
+        try {
+            const csvString = await exportHistoryToCsv(filteredHistory);
+            if (!csvString) {
+                toast({ variant: "destructive", title: "Exportação Falhou", description: "Não há dados para exportar."});
+                return;
+            }
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'historico_patrimonio.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast({ title: "Exportação Iniciada", description: "O download do arquivo CSV começará em breve."});
+        } catch (error) {
+            toast({ variant: "destructive", title: "Exportação Falhou", description: "Não foi possível gerar o arquivo CSV." });
+        }
+    });
+  }
+
+  const handleExportPdf = () => {
+    toast({
+      title: "Funcionalidade em breve",
+      description: "A exportação para PDF ainda não está disponível.",
+    });
+  };
+
 
   return (
     <>
@@ -104,6 +142,24 @@ export default function HistoryClient({
               ))}
             </SelectContent>
           </Select>
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  <span className="ml-2">Exportar</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportCsv}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  <span>Exportar para CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Exportar para PDF</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </div>
       <HistoryTable history={filteredHistory} />

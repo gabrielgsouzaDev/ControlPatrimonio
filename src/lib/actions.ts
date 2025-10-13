@@ -3,6 +3,8 @@
 import { detectAssetAnomalies } from '@/ai/flows/detect-asset-anomalies';
 import { z } from 'zod';
 import type { Asset, Anomaly, Category, HistoryLog } from './types';
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // Placeholder for a real database call
 import { mockAssets, mockCategories, mockHistory } from './data';
@@ -136,4 +138,25 @@ export async function deleteCategory(id: string): Promise<{ success: true }> {
 // History Actions
 export async function getHistory(): Promise<HistoryLog[]> {
     return Promise.resolve(mockHistory);
+}
+
+export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string> {
+    if (!history.length) {
+        return '';
+    }
+
+    const headers = ['ID', 'Item', 'Código ID', 'Ação', 'Usuário', 'Data e Hora', 'Detalhes'];
+    const rows = history.map(log => 
+        [
+            log.id,
+            `"${log.assetName.replace(/"/g, '""')}"`,
+            log.codeId,
+            log.action,
+            log.user,
+            format(log.timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
+            `"${(log.details || '').replace(/"/g, '""')}"`
+        ].join(',')
+    );
+
+    return [headers.join(','), ...rows].join('\n');
 }
