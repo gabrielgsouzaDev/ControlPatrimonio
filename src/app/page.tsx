@@ -36,7 +36,6 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
       toast({
         variant: 'destructive',
         title: 'Erro de Login',
@@ -54,7 +53,6 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
        toast({
         variant: 'destructive',
         title: 'Erro de Login com Google',
