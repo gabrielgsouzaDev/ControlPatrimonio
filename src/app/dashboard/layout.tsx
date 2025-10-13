@@ -1,5 +1,9 @@
-import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+'use client';
+
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   SidebarProvider,
   Sidebar,
@@ -11,15 +15,34 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
-} from "@/components/ui/sidebar";
-import { Building2, LogOut, Settings } from "lucide-react";
-import { Logo } from "@/components/logo";
+} from '@/components/ui/sidebar';
+import { Building2, LogOut, Settings } from 'lucide-react';
+import { Logo } from '@/components/logo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(false);
+    router.push('/');
+  };
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -36,8 +59,8 @@ export default function DashboardLayout({
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive
-                tooltip={{ children: "Patrimônio" }}
+                isActive={pathname === '/dashboard'}
+                tooltip={{ children: 'Patrimônio' }}
               >
                 <Link href="/dashboard">
                   <Building2 />
@@ -45,28 +68,39 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/dashboard/settings'}
+                tooltip={{ children: 'Configurações' }}
+              >
+                <Link href="/dashboard/settings">
+                  <Settings />
+                  <span>Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <SidebarMenu>
+          <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip={{ children: "Configurações" }}>
-                <Settings />
-                <span>Configurações</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={{ children: "Sair" }}>
-                <Link href="/">
-                  <LogOut />
-                  <span>Sair</span>
-                </Link>
+              <SidebarMenuButton
+                onClick={() => setShowLogoutConfirm(true)}
+                tooltip={{ children: 'Sair' }}
+              >
+                <LogOut />
+                <span>Sair</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
             <Avatar className="size-8">
-              <AvatarImage src="https://picsum.photos/seed/user/40/40" alt="User" data-ai-hint="user avatar" />
+              <AvatarImage
+                src="https://picsum.photos/seed/user/40/40"
+                alt="User"
+                data-ai-hint="user avatar"
+              />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden">
@@ -78,13 +112,31 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="md:hidden"/>
+          <SidebarTrigger className="md:hidden" />
           <div className="w-full flex-1">
-             {/* Can be used for a global search bar in the future */}
+            {/* Can be used for a global search bar in the future */}
           </div>
         </header>
         <main>{children}</main>
       </SidebarInset>
+
+      <AlertDialog
+        open={showLogoutConfirm}
+        onOpenChange={setShowLogoutConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza que deseja sair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você será redirecionado para a página de login.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>Sair</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
