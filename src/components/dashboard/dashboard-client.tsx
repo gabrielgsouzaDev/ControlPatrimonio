@@ -284,7 +284,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. Isso excluirá permanentemente o item
               <span className="font-semibold"> {dialogState?.type === 'delete' && dialogState.asset.name}</span>.
-            </ yaşadıklarını
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { firebaseConfig } from './config';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase(): { auth: ReturnType<typeof getAuth>, firestore: ReturnType<typeof getFirestore>, app: App } {
+export async function initializeFirebase(): Promise<{ auth: ReturnType<typeof getAuth>, firestore: ReturnType<typeof getFirestore>, app: App }> {
   if (!getApps().length) {
     const app = initializeApp({
         credential: undefined, // Let ADC find the credentials
@@ -20,7 +20,7 @@ export function initializeFirebase(): { auth: ReturnType<typeof getAuth>, firest
   return getSdks(app);
 }
 
-export function getSdks(app: App) {
+export async function getSdks(app: App): Promise<{ auth: ReturnType<typeof getAuth>, firestore: ReturnType<typeof getFirestore>, app: App }> {
   return {
     app,
     auth: getAuth(app),

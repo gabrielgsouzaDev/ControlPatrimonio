@@ -6,7 +6,7 @@ import type { Asset, Anomaly, Category, HistoryLog } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { auth } from 'firebase-admin';
-import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, documentId } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, documentId, getDoc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server'; // We need a server-side firebase initialization
 import { revalidatePath } from 'next/cache';
 
@@ -21,7 +21,9 @@ const assetSchema = z.object({
 });
 
 async function getUserIdAndServices() {
-    const { firestore } = initializeFirebase();
+    const { firestore } = await initializeFirebase();
+    // This is a workaround to get the current user in a server action
+    // In a real app you might use a session management library or pass the token
     const user = auth().currentUser;
     if (!user) throw new Error("Usuário não autenticado.");
     return { userId: user.uid, userDisplayName: user.displayName || user.email, firestore };
@@ -65,7 +67,7 @@ export async function addAsset(formData: FormData) {
         return { errors: validatedFields.error.flatten().fieldErrors };
     }
     
-    const { category, ...assetData } = validatedFields.data;
+    const { id, ...assetData } = validatedFields.data;
 
     try {
         const batch = writeBatch(firestore);
@@ -89,6 +91,7 @@ export async function addAsset(formData: FormData) {
 
         await batch.commit();
         revalidatePath('/dashboard/patrimonio');
+        revalidatePath('/dashboard/historico');
         return { success: true };
     } catch (error) {
         console.error("Error adding asset:", error);
@@ -104,7 +107,7 @@ export async function updateAsset(formData: FormData) {
         return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { id, category, ...assetData } = validatedFields.data;
+    const { id, ...assetData } = validatedFields.data;
     if (!id) return { errors: { _server: ['ID do item não encontrado.'] } };
 
     try {
@@ -128,6 +131,7 @@ export async function updateAsset(formData: FormData) {
 
         await batch.commit();
         revalidatePath('/dashboard/patrimonio');
+        revalidatePath('/dashboard/historico');
         return { success: true };
     } catch (error) {
         console.error("Error updating asset:", error);
@@ -141,9 +145,11 @@ export async function deleteAsset(id: string) {
     const { userId, userDisplayName, firestore } = await getUserIdAndServices();
     const assetRef = doc(firestore, 'users', userId, 'assets', id);
     
-    // We need asset data for the history log before deleting
-    // In a real app with security rules, you'd get this via a transaction or trusted environment
-    const assetSnapshot = { name: "Item Excluído", codeId: "N/A" }; // Placeholder
+    const assetDoc = await getDoc(assetRef);
+    if (!assetDoc.exists()) {
+        throw new Error("Asset not found");
+    }
+    const assetData = assetDoc.data();
 
     const batch = writeBatch(firestore);
     batch.delete(assetRef);
@@ -151,8 +157,8 @@ export async function deleteAsset(id: string) {
     const historyRef = collection(firestore, 'users', userId, 'history');
     const historyLog = {
         assetId: id,
-        assetName: assetSnapshot.name,
-        codeId: assetSnapshot.codeId,
+        assetName: assetData.name,
+        codeId: assetData.codeId,
         action: "Excluído",
         details: "Item foi removido do inventário.",
         userId: userId,
@@ -163,6 +169,7 @@ export async function deleteAsset(id: string) {
     
     await batch.commit();
     revalidatePath('/dashboard/patrimonio');
+    revalidatePath('/dashboard/historico');
     return { success: true };
   } catch (error) {
     console.error("Error deleting asset:", error);
