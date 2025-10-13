@@ -108,14 +108,6 @@ export default function LoginPage() {
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
-            <Button variant="outline" onClick={handleGoogleSignIn} className="w-full" disabled={isPending}>
-              {isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.3 512 0 398.5 0 256S111.3 0 244 0c69.8 0 130.8 28.5 173.4 74.2L346.8 169.3c-24.3-23.2-57.2-37.4-92.8-37.4-70.3 0-127.5 57.2-127.5 127.5s57.2 127.5 127.5 127.5c80.3 0 113.8-61.5 116.5-91.2H244v-83.8h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-              )}
-              Entrar com Google
-            </Button>
             <div className="mt-4 text-center text-sm">
               Não tem uma conta?{' '}
               <Link href="/signup" className="underline">
