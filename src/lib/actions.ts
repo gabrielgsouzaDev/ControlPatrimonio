@@ -5,9 +5,8 @@ import { z } from 'zod';
 import type { Asset, Anomaly, Category, HistoryLog } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { auth } from 'firebase-admin';
 import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, documentId, getDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server'; // We need a server-side firebase initialization
+import { initializeFirebase } from '@/firebase/server';
 import { revalidatePath } from 'next/cache';
 
 const assetSchema = z.object({
@@ -22,7 +21,11 @@ const assetSchema = z.object({
 
 async function getUserIdAndServices() {
     const { auth: adminAuth, firestore } = await initializeFirebase();
-    const user = adminAuth.currentUser;
+    // This is a placeholder for a real auth check mechanism on the server.
+    // In a real app, you'd get the user from the session or token.
+    const uid = 'admin-uid-placeholder'; // This needs a proper solution
+    const user = await adminAuth.getUser(uid).catch(() => null);
+
     if (!user) throw new Error("Usuário não autenticado.");
     return { userId: user.uid, userDisplayName: user.displayName || user.email, firestore };
 }
@@ -112,15 +115,28 @@ export async function updateAsset(formData: FormData) {
         const batch = writeBatch(firestore);
 
         const assetRef = doc(firestore, 'users', userId, 'assets', id);
+        const oldAssetSnap = await getDoc(assetRef);
+        const oldAssetData = oldAssetSnap.data();
+        
         batch.update(assetRef, { ...assetData, updatedAt: serverTimestamp() });
         
         const historyRef = collection(firestore, 'users', userId, 'history');
+        // Simple change detection for history
+        const changes: string[] = [];
+        if (oldAssetData) {
+            for (const key in assetData) {
+                if (key !== 'id' && oldAssetData[key] !== (assetData as any)[key]) {
+                    changes.push(`${key} alterado de '${oldAssetData[key]}' para '${(assetData as any)[key]}'`);
+                }
+            }
+        }
+        
         const historyLog = {
             assetId: id,
             assetName: assetData.name,
             codeId: assetData.codeId,
             action: "Atualizado",
-            details: "Item foi atualizado.",
+            details: changes.length > 0 ? changes.join(', ') : "Item foi atualizado.",
             userId: userId,
             userDisplayName: userDisplayName,
             timestamp: serverTimestamp()
@@ -207,12 +223,6 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   return [headers.join(','), ...rows].join('\n');
 }
 
-// Category Actions
-const categorySchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, 'O nome da categoria é obrigatório.'),
-});
-
 export async function getCategories(): Promise<Category[]> {
   try {
     const { userId, firestore } = await getUserIdAndServices();
@@ -226,44 +236,6 @@ export async function getCategories(): Promise<Category[]> {
   }
 }
 
-export async function addCategory(name: string): Promise<Category> {
-  const { userId, firestore } = await getUserIdAndServices();
-  const validatedField = categorySchema.pick({ name: true }).safeParse({ name });
-  if (!validatedField.success) {
-    throw new Error(validatedField.error.flatten().fieldErrors.name?.[0]);
-  }
-  
-  const categoriesRef = collection(firestore, 'users', userId, 'categories');
-  const newCategoryRef = await addDoc(categoriesRef, { name, userId, createdAt: serverTimestamp() });
-  
-  revalidatePath('/dashboard/patrimonio');
-  return { id: newCategoryRef.id, name };
-}
-
-export async function updateCategory(id: string, name: string): Promise<Category> {
-    const { userId, firestore } = await getUserIdAndServices();
-    const validatedField = categorySchema.pick({ name: true }).safeParse({ name });
-    if (!validatedField.success) {
-        throw new Error(validatedField.error.flatten().fieldErrors.name?.[0].toString());
-    }
-    
-    const categoryRef = doc(firestore, 'users', userId, 'categories', id);
-    await updateDoc(categoryRef, { name });
-    
-    revalidatePath('/dashboard/patrimonio');
-    return { id, name };
-}
-
-export async function deleteCategory(id: string): Promise<{ success: true }> {
-  const { userId, firestore } = await getUserIdAndServices();
-  // We should also check if any asset is using this category before deleting.
-  // For simplicity, we skip that for now.
-  const categoryRef = doc(firestore, 'users', userId, 'categories', id);
-  await deleteDoc(categoryRef);
-
-  revalidatePath('/dashboard/patrimonio');
-  return { success: true };
-}
 
 // History Actions
 export async function getHistory(): Promise<HistoryLog[]> {
@@ -299,8 +271,8 @@ export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string>
             `"${log.assetName.replace(/"/g, '""')}"`,
             log.codeId,
             log.action,
-            log.user,
-            format(log.timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
+            log.userDisplayName,
+            format(new Date(log.timestamp.seconds * 1000), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
             `"${(log.details || '').replace(/"/g, '""')}"`
         ].join(',')
     );

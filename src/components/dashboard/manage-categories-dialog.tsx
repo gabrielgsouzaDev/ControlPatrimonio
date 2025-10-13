@@ -13,9 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { addCategory, updateCategory, deleteCategory } from "@/lib/actions";
 import type { Category } from "@/lib/types";
 import { Loader2, Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { useFirestore, useUser } from "@/firebase";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from "firebase/firestore";
 
 interface ManageCategoriesDialogProps {
   open: boolean;
@@ -31,54 +32,77 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   React.useEffect(() => {
     setCategories(initialCategories);
   }, [initialCategories]);
 
   const handleAddCategory = () => {
+    if (!user || !firestore) return;
     if (!newCategoryName.trim()) {
       toast({ variant: "destructive", title: "Erro", description: "O nome da categoria não pode estar vazio." });
       return;
     }
     startTransition(async () => {
       try {
-        await addCategory(newCategoryName);
+        const categoriesRef = collection(firestore, 'users', user.uid, 'categories');
+        await addDoc(categoriesRef, { name: newCategoryName, userId: user.uid, createdAt: serverTimestamp() });
         setNewCategoryName("");
         onCategoriesChange();
         toast({ title: "Sucesso", description: "Categoria adicionada." });
       } catch (error: any) {
-        toast({ variant: "destructive", title: "Erro", description: error.message });
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível adicionar a categoria." });
       }
     });
   };
 
   const handleUpdateCategory = (id: string) => {
+    if (!user || !firestore) return;
     if (!editingCategoryName.trim()) {
       toast({ variant: "destructive", title: "Erro", description: "O nome da categoria não pode estar vazio." });
       return;
     }
     startTransition(async () => {
       try {
-        await updateCategory(id, editingCategoryName);
+        const categoryRef = doc(firestore, 'users', user.uid, 'categories', id);
+        await updateDoc(categoryRef, { name: editingCategoryName });
         setEditingCategoryId(null);
         setEditingCategoryName("");
         onCategoriesChange();
         toast({ title: "Sucesso", description: "Categoria atualizada." });
       } catch (error: any) {
-        toast({ variant: "destructive", title: "Erro", description: error.message });
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível atualizar a categoria." });
       }
     });
   };
   
   const handleDeleteCategory = (id: string) => {
+    if (!user || !firestore) return;
     startTransition(async () => {
         try {
-            await deleteCategory(id);
+            const batch = writeBatch(firestore);
+            
+            // 1. Unlink assets from the category
+            const assetsRef = collection(firestore, 'users', user.uid, 'assets');
+            const q = query(assetsRef, where("categoryId", "==", id));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+              batch.update(doc.ref, { categoryId: "" }); // or set to null/undefined
+            });
+
+            // 2. Delete the category
+            const categoryRef = doc(firestore, 'users', user.uid, 'categories', id);
+            batch.delete(categoryRef);
+
+            await batch.commit();
+
             onCategoriesChange();
-            toast({ title: "Sucesso", description: "Categoria excluída." });
+            toast({ title: "Sucesso", description: "Categoria excluída e itens desvinculados." });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Erro", description: error.message });
+            console.error(error);
+            toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir a categoria." });
         }
     });
   };
@@ -111,7 +135,7 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
                     disabled={isPending}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                 />
-                <Button onClick={handleAddCategory} disabled={isPending} size="icon">
+                <Button onClick={handleAddCategory} disabled={isPending || !newCategoryName.trim()} size="icon">
                     {isPending && !editingCategoryId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 </Button>
             </div>
@@ -133,7 +157,7 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
                         <div className="flex items-center space-x-1">
                             {editingCategoryId === category.id ? (
                                 <>
-                                    <Button size="icon" variant="ghost" onClick={() => handleUpdateCategory(category.id)} disabled={isPending}>
+                                    <Button size="icon" variant="ghost" onClick={() => handleUpdateCategory(category.id)} disabled={isPending || !editingCategoryName.trim()}>
                                         <Save className="h-4 w-4" />
                                     </Button>
                                     <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isPending}>
