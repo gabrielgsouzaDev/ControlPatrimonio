@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Building2, LogOut, Settings, Landmark } from 'lucide-react';
+import { Building2, LogOut, Settings, Landmark, LayoutDashboard } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,13 +54,25 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            <SidebarMenuItem>
+             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
                 isActive={pathname === '/dashboard'}
-                tooltip={{ children: 'Patrimônio' }}
+                tooltip={{ children: 'Dashboard' }}
               >
                 <Link href="/dashboard">
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/dashboard/patrimonio'}
+                tooltip={{ children: 'Patrimônio' }}
+              >
+                <Link href="/dashboard/patrimonio">
                   <Building2 />
                   <span>Patrimônio</span>
                 </Link>
