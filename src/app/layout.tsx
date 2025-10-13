@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'AssetFlow',
+  title: 'Patrimonio',
   description: 'Sistema de gestão de estoque e patrimônio.',
 };
 

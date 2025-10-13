@@ -16,8 +16,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Building2, LogOut, Settings } from 'lucide-react';
-import { Logo } from '@/components/logo';
+import { Building2, LogOut, Settings, Landmark } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,9 +47,9 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            <Logo className="size-6 shrink-0" />
+            <Landmark className="size-7 shrink-0 text-primary" />
             <span className="font-headline text-lg group-data-[collapsible=icon]:hidden">
-              AssetFlow
+              Patrimonio
             </span>
           </div>
         </SidebarHeader>

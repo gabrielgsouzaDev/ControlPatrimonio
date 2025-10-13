@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/logo';
+import { Landmark } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -11,9 +11,9 @@ export default function LoginPage() {
       <Card className="mx-auto w-full max-w-sm">
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <Logo className="h-10 w-10" />
+            <Landmark className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao AssetFlow</CardTitle>
+          <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao Patrimonio</CardTitle>
           <CardDescription className="text-center">
             Faça login para gerenciar seu patrimônio
           </CardDescription>
