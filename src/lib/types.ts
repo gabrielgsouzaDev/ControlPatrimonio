@@ -8,7 +8,6 @@ export type Asset = {
   value: number;
   observation?: string;
   categoryId: string; // Now required
-  category?: string; // Display name, optional
   userId?: string; // ID of the user who last modified/created
 };
 
