@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useUser } from '@/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updatePassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [isSavingProfile, setIsSavingProfile] = React.useState(false);
   const [isSavingPassword, setIsSavingPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -197,9 +199,19 @@ export default function SettingsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <Label>Nova Senha</Label>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
+                      <div className="relative">
+                        <FormControl>
+                          <Input type={showNewPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                          aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -210,9 +222,19 @@ export default function SettingsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <Label>Confirmar Nova Senha</Label>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
+                      <div className="relative">
+                        <FormControl>
+                          <Input type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
+                        </FormControl>
+                         <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                          aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
