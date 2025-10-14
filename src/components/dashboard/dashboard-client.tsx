@@ -211,7 +211,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
                <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Filtrar por cidade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,7 +223,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 </SelectContent>
               </Select>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Filtrar por categoria" />
                 </SelectTrigger>
                 <SelectContent>
