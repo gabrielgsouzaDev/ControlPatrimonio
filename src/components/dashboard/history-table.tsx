@@ -42,7 +42,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
 });
 
   return (
-    <div className="rounded-lg border shadow-sm w-full">
+    <div className="rounded-lg border shadow-sm w-full overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>

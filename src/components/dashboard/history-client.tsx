@@ -130,8 +130,8 @@ export default function HistoryClient() {
         </div>
       </div>
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
-            <div className="relative w-full sm:flex-1">
+        <div className="flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -168,7 +168,7 @@ export default function HistoryClient() {
             <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" disabled={isPending}>
+                    <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
                        {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
                       Exportar
                     </Button>
@@ -187,7 +187,7 @@ export default function HistoryClient() {
             </div>
         </div>
       </div>
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4">
         <HistoryTable history={filteredHistory || []} />
       </div>
     </>

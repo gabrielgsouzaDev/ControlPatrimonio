@@ -34,7 +34,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
   };
   
   return (
-    <div className="rounded-lg border shadow-sm w-full">
+    <div className="rounded-lg border shadow-sm w-full overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
