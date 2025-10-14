@@ -198,8 +198,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   return (
     <>
       <div className="flex flex-col gap-4 mb-4">
-        <div className="flex flex-col md:flex-row gap-2">
-            <div className="relative w-full md:flex-grow">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2">
+            <div className="relative w-full sm:flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -209,32 +209,30 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
-               <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filtrar por cidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueCities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city === "all" ? "Todas as Cidades" : city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filtrar por categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category === "all" ? "Todas as Categorias" : category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+             <Select value={cityFilter} onValueChange={setCityFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por cidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueCities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city === "all" ? "Todas as Cidades" : city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category === "all" ? "Todas as Categorias" : category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         </div>
         <div className="flex items-center gap-2">
             <DropdownMenu>
