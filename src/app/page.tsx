@@ -30,6 +30,8 @@ export default function AuthPage() {
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+
 
   const [isPending, setIsPending] = useState(false);
 
@@ -70,6 +72,17 @@ export default function AuthPage() {
 
   const handleSignUp = async () => {
     setIsPending(true);
+
+    if (signupPassword !== signupConfirmPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Cadastro',
+        description: 'As senhas não coincidem. Por favor, tente novamente.',
+      });
+      setIsPending(false);
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
       const user = userCredential.user;
@@ -104,20 +117,20 @@ export default function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Tabs defaultValue="login" className="w-full max-w-sm">
             <Card>
-                <CardHeader>
-                    <div className="flex justify-center mb-2">
-                        <Landmark className="h-10 w-10 text-primary" />
+                <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                        <Landmark className="h-12 w-12 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao Patrimonio</CardTitle>
-                    <CardDescription className="text-center">
-                       Selecione a aba para entrar ou se cadastrar.
+                    <CardTitle className="text-2xl font-headline">Bem-vindo ao Patrimonio</CardTitle>
+                    <CardDescription>
+                       Entre ou crie sua conta para gerenciar seus itens.
                     </CardDescription>
-                     <TabsList className="grid w-full grid-cols-2 mt-4">
+                </CardHeader>
+                <CardContent>
+                    <TabsList className="grid w-full grid-cols-2 mb-6">
                         <TabsTrigger value="login">Entrar</TabsTrigger>
                         <TabsTrigger value="signup">Cadastrar</TabsTrigger>
                     </TabsList>
-                </CardHeader>
-                <CardContent>
                     <TabsContent value="login">
                         <div className="grid gap-4">
                             <div className="grid gap-2">
@@ -143,7 +156,7 @@ export default function AuthPage() {
                                     disabled={isPending}
                                 />
                             </div>
-                            <Button onClick={handleLogin} className="w-full" disabled={isPending}>
+                            <Button onClick={handleLogin} className="w-full mt-2" disabled={isPending}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Entrar
                             </Button>
@@ -155,7 +168,7 @@ export default function AuthPage() {
                                 <Label htmlFor="signup-name">Nome</Label>
                                 <Input 
                                     id="signup-name" 
-                                    placeholder="Seu Nome" 
+                                    placeholder="Seu Nome Completo" 
                                     required 
                                     value={signupName}
                                     onChange={(e) => setSignupName(e.target.value)}
@@ -185,9 +198,20 @@ export default function AuthPage() {
                                     disabled={isPending}
                                 />
                             </div>
-                            <Button onClick={handleSignUp} className="w-full" disabled={isPending}>
+                            <div className="grid gap-2">
+                                <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                                <Input 
+                                    id="signup-confirm-password" 
+                                    type="password" 
+                                    required 
+                                    value={signupConfirmPassword}
+                                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <Button onClick={handleSignUp} className="w-full mt-2" disabled={isPending}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Cadastrar
+                                Criar Conta
                             </Button>
                         </div>
                     </TabsContent>
