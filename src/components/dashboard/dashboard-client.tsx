@@ -271,7 +271,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 relative w-full overflow-x-auto rounded-lg border shadow-sm">
         <AssetTable
           assets={filteredAssets}
           onEdit={(asset) => setDialogState({ type: "edit", asset })}

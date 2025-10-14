@@ -42,45 +42,43 @@ export function HistoryTable({ history }: HistoryTableProps) {
 });
 
   return (
-    <div className="relative w-full overflow-x-auto rounded-lg border shadow-sm">
-      <Table>
-        <TableHeader>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Item</TableHead>
+          <TableHead>Código ID</TableHead>
+          <TableHead>Ação</TableHead>
+          <TableHead>Usuário</TableHead>
+          <TableHead>Detalhes</TableHead>
+          <TableHead className="sticky right-0 bg-card z-10 text-right">Data e Hora</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {history.length === 0 ? (
           <TableRow>
-            <TableHead>Item</TableHead>
-            <TableHead>Código ID</TableHead>
-            <TableHead>Ação</TableHead>
-            <TableHead>Usuário</TableHead>
-            <TableHead>Detalhes</TableHead>
-            <TableHead className="sticky right-0 bg-card z-10 text-right">Data e Hora</TableHead>
+            <TableCell colSpan={6} className="h-24 text-center">
+              Nenhum registro de histórico encontrado.
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {history.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
-                Nenhum registro de histórico encontrado.
+        ) : (
+          sortedHistory.map((log) => (
+            <TableRow key={log.id}>
+              <TableCell className="font-medium whitespace-nowrap">{log.assetName}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{log.codeId}</Badge>
+              </TableCell>
+              <TableCell>
+                  <Badge variant={getActionBadgeVariant(log.action)}>{log.action}</Badge>
+              </TableCell>
+              <TableCell className="whitespace-nowrap">{log.userDisplayName}</TableCell>
+              <TableCell className="text-muted-foreground max-w-[250px] truncate">{log.details}</TableCell>
+              <TableCell className="sticky right-0 bg-card z-10 text-right whitespace-nowrap">
+                {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
               </TableCell>
             </TableRow>
-          ) : (
-            sortedHistory.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell className="font-medium whitespace-nowrap">{log.assetName}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{log.codeId}</Badge>
-                </TableCell>
-                <TableCell>
-                    <Badge variant={getActionBadgeVariant(log.action)}>{log.action}</Badge>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{log.userDisplayName}</TableCell>
-                <TableCell className="text-muted-foreground max-w-[250px] truncate">{log.details}</TableCell>
-                <TableCell className="sticky right-0 bg-card z-10 text-right whitespace-nowrap">
-                  {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          ))
+        )}
+      </TableBody>
+    </Table>
   );
 }
