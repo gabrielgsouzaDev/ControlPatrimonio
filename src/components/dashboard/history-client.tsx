@@ -187,8 +187,10 @@ export default function HistoryClient() {
             </div>
         </div>
       </div>
-      <div className="mt-4 rounded-lg border shadow-sm overflow-x-auto">
-        <HistoryTable history={filteredHistory || []} />
+      <div className="mt-4 rounded-lg border shadow-sm">
+        <div className="overflow-x-auto">
+          <HistoryTable history={filteredHistory || []} />
+        </div>
       </div>
     </>
   );
