@@ -34,7 +34,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
   };
   
   return (
-    <div className="rounded-lg border shadow-sm">
+    <div className="rounded-lg border shadow-sm w-full">
       <Table>
         <TableHeader>
           <TableRow>
@@ -44,7 +44,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
             <TableHead>Cidade/Local</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Observação</TableHead>
-            <TableHead className="w-16">Ações</TableHead>
+            <TableHead className="w-16 text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -57,17 +57,17 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
           ) : (
             assets.map((asset) => (
               <TableRow key={asset.id}>
-                <TableCell className="font-medium">{asset.name}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{asset.codeId}</Badge>
                 </TableCell>
-                <TableCell>{asset.category}</TableCell>
-                <TableCell>{asset.city}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="whitespace-nowrap">{asset.category}</TableCell>
+                <TableCell className="whitespace-nowrap">{asset.city}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
                   {formatCurrency(asset.value)}
                 </TableCell>
-                <TableCell>{asset.observation || "-"}</TableCell>
-                <TableCell>
+                <TableCell className="max-w-[200px] truncate">{asset.observation || "-"}</TableCell>
+                <TableCell className="text-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">

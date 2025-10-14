@@ -114,7 +114,7 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <h2 className="text-3xl font-headline tracking-tight">Dashboard</h2>
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
@@ -176,8 +176,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+      <div className="grid gap-4 grid-cols-1 xl:grid-cols-7">
+        <Card className="xl:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <BarChart /> Valor por Cidade
@@ -201,7 +201,7 @@ export default function DashboardPage() {
              </ChartContainer>
           </CardContent>
         </Card>
-         <Card className="lg:col-span-3">
+         <Card className="xl:col-span-3">
            <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <PieChart /> Distribuição por Categoria

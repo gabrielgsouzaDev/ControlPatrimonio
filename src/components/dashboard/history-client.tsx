@@ -129,9 +129,9 @@ export default function HistoryClient() {
           </p>
         </div>
       </div>
-      <div className="flex flex-col gap-4 mb-4">
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2">
-            <div className="relative w-full sm:flex-grow">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+            <div className="relative w-full sm:flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -165,29 +165,31 @@ export default function HistoryClient() {
                 ))}
               </SelectContent>
             </Select>
-        </div>
-        <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isPending} className="flex-shrink-0">
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <Download className="h-4 w-4 md:mr-2" />}
-                  <span className="hidden md:inline">Exportar</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCsv}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  <span>Exportar para CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPdf}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  <span>Exportar para PDF</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" disabled={isPending}>
+                       {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                      Exportar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleExportCsv}>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      <span>Exportar para CSV</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPdf}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>Exportar para PDF</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
       </div>
-      <HistoryTable history={filteredHistory || []} />
+      <div className="mt-4 overflow-x-auto">
+        <HistoryTable history={filteredHistory || []} />
+      </div>
     </>
   );
 }

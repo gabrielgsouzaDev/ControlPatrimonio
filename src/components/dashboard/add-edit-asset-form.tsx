@@ -101,7 +101,7 @@ export function AddEditAssetForm({ asset, categories, locations, onSubmitSuccess
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="codeId"
@@ -138,7 +138,7 @@ export function AddEditAssetForm({ asset, categories, locations, onSubmitSuccess
             )}
           />
         </div>
-         <div className="grid grid-cols-2 gap-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
                 control={form.control}
                 name="value"

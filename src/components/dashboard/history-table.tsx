@@ -42,7 +42,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
 });
 
   return (
-    <div className="rounded-lg border shadow-sm">
+    <div className="rounded-lg border shadow-sm w-full">
       <Table>
         <TableHeader>
           <TableRow>
@@ -64,16 +64,16 @@ export function HistoryTable({ history }: HistoryTableProps) {
           ) : (
             sortedHistory.map((log) => (
               <TableRow key={log.id}>
-                <TableCell className="font-medium">{log.assetName}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{log.assetName}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{log.codeId}</Badge>
                 </TableCell>
                 <TableCell>
                     <Badge variant={getActionBadgeVariant(log.action)}>{log.action}</Badge>
                 </TableCell>
-                <TableCell>{log.userDisplayName}</TableCell>
-                <TableCell className="text-muted-foreground">{log.details}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="whitespace-nowrap">{log.userDisplayName}</TableCell>
+                <TableCell className="text-muted-foreground max-w-[250px] truncate">{log.details}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
                   {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
                 </TableCell>
               </TableRow>

@@ -197,9 +197,9 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
   return (
     <>
-      <div className="flex flex-col gap-4 mb-4">
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2">
-            <div className="relative w-full sm:flex-grow">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4">
+            <div className="relative w-full sm:flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -234,12 +234,12 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
               </SelectContent>
             </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isPending} className="flex-shrink-0">
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <Download className="h-4 w-4 md:mr-2" />}
-                  <span className="hidden md:inline">Exportar</span>
+                <Button variant="outline" disabled={isPending}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -254,35 +254,35 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })}>
+            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais">
                 <MapPin className="h-4 w-4" />
-                <span className="sr-only">Gerenciar Locais</span>
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })}>
+            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias">
                 <Settings className="h-4 w-4" />
-                <span className="sr-only">Gerenciar Categorias</span>
             </Button>
             <div className="ml-auto">
                 <Button onClick={() => setDialogState({ type: "add" })}>
-                    <PlusCircle className="h-4 w-4 md:mr-2" />
-                    <span className="hidden md:inline">Adicionar</span>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Adicionar
                 </Button>
             </div>
         </div>
       </div>
 
-      <AssetTable
-        assets={filteredAssets}
-        onEdit={(asset) => setDialogState({ type: "edit", asset })}
-        onDelete={(asset) => setDialogState({ type: "delete", asset })}
-      />
+      <div className="mt-4 overflow-x-auto">
+        <AssetTable
+          assets={filteredAssets}
+          onEdit={(asset) => setDialogState({ type: "edit", asset })}
+          onDelete={(asset) => setDialogState({ type: "delete", asset })}
+        />
+      </div>
       
       {/* Add/Edit Dialog */}
       <Dialog
         open={dialogState?.type === "add" || dialogState?.type === "edit"}
         onOpenChange={(open) => !open && setDialogState(null)}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {dialogState?.type === "edit" ? "Editar Item" : "Adicionar Novo Item"}
