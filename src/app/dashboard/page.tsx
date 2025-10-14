@@ -190,7 +190,7 @@ export default function DashboardPage() {
                     color: "hsl(var(--chart-1))",
                 },
              }} className="h-[350px] w-full">
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart data={dashboardData.barChartData}>
                   <XAxis dataKey="city" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                     [entry.category]: { label: entry.category, color: `hsl(var(--chart-${index + 1}))` }
                 }), {})
              }} className="h-[350px] w-full">
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                     <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                     <Pie data={dashboardData.pieChartData} dataKey="value" nameKey="category" cx="50%" cy="50%" innerRadius={60} outerRadius={80} labelLine={false} label={({
