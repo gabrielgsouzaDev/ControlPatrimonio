@@ -130,8 +130,8 @@ export default function HistoryClient() {
         </div>
       </div>
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-4">
+            <div className="relative w-full sm:flex-1 sm:min-w-[250px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -142,7 +142,7 @@ export default function HistoryClient() {
               />
             </div>
             <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-full sm:w-auto">
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[180px]">
                 <SelectValue placeholder="Filtrar por ação" />
               </SelectTrigger>
               <SelectContent>
@@ -154,7 +154,7 @@ export default function HistoryClient() {
               </SelectContent>
             </Select>
             <Select value={userFilter} onValueChange={setUserFilter}>
-              <SelectTrigger className="w-full sm:w-auto">
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[180px]">
                 <SelectValue placeholder="Filtrar por usuário" />
               </SelectTrigger>
               <SelectContent>
@@ -165,7 +165,7 @@ export default function HistoryClient() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
+            <div className="w-full sm:w-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">

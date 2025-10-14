@@ -235,8 +235,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-4">
+            <div className="relative w-full sm:flex-1 sm:min-w-[250px]">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -247,7 +247,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 />
             </div>
              <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[180px]">
                 <SelectValue placeholder="Filtrar por cidade" />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +259,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-[180px]">
                 <SelectValue placeholder="Filtrar por categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -271,13 +271,12 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
               </SelectContent>
             </Select>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
                   <Download className="h-4 w-4 mr-2" />
-                  <span className="sm:hidden">Exportar</span>
-                  <span className="hidden sm:inline">Exportar</span>
+                  <span>Exportar</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -291,18 +290,18 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais">
-                <MapPin className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias">
-                <Settings className="h-4 w-4" />
-            </Button>
-            <div className="ml-auto">
+            <div className="flex w-full sm:w-auto gap-2">
+                <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais" className="flex-1 sm:flex-none">
+                    <MapPin className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias" className="flex-1 sm:flex-none">
+                    <Settings className="h-4 w-4" />
+                </Button>
+            </div>
+            <div className="w-full sm:w-auto sm:ml-auto">
                 <Button onClick={() => setDialogState({ type: "add" })} className="w-full sm:w-auto">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                     <span className="sm:hidden">Adicionar</span>
-                     <span className="hidden sm:inline">Adicionar</span>
+                     <span>Adicionar Item</span>
                 </Button>
             </div>
         </div>
