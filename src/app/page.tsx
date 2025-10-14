@@ -1,27 +1,36 @@
+
 'use client';
 
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Landmark, Loader2 } from 'lucide-react';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useState, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
+  createUserWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
+export default function AuthPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+
   const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
@@ -33,7 +42,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setIsPending(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
       router.push('/dashboard');
     } catch (error: any) {
       toast({
@@ -46,75 +55,145 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const getFriendlyErrorMessage = (errorCode: string): string => {
+    switch (errorCode) {
+        case 'auth/weak-password':
+            return 'A senha deve ter pelo menos 6 caracteres.';
+        case 'auth/email-already-in-use':
+            return 'Este email já está em uso por outra conta.';
+        case 'auth/invalid-email':
+            return 'O formato do email fornecido é inválido.';
+        default:
+            return 'Não foi possível criar a conta. Tente novamente.';
+    }
+  }
+
+  const handleSignUp = async () => {
     setIsPending(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: signupName });
+      
+      const userProfile = {
+        id: user.uid,
+        name: signupName,
+        email: user.email,
+      };
+      
+      if (firestore) {
+        await setDoc(doc(firestore, 'users', user.uid), userProfile);
+      }
+
       router.push('/dashboard');
     } catch (error: any) {
-       toast({
+      console.error(error);
+      toast({
         variant: 'destructive',
-        title: 'Erro de Login com Google',
-        description: 'Não foi possível fazer login com o Google. Tente novamente.',
+        title: 'Erro no Cadastro',
+        description: getFriendlyErrorMessage(error.code),
       });
     } finally {
       setIsPending(false);
     }
   };
 
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="mx-auto w-full max-w-sm">
-        <CardHeader>
-          <div className="flex justify-center mb-4">
-            <Landmark className="h-10 w-10 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao Patrimonio</CardTitle>
-          <CardDescription className="text-center">
-            Faça login para gerenciar seu patrimônio
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isPending}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Senha</Label>
-              </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isPending}
-              />
-            </div>
-            <Button onClick={handleLogin} className="w-full" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar
-            </Button>
-            <div className="mt-4 text-center text-sm">
-              Não tem uma conta?{' '}
-              <Link href="/signup" className="underline">
-                Cadastre-se
-              </Link>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <Tabs defaultValue="login" className="w-full max-w-sm">
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-center mb-2">
+                        <Landmark className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle className="text-2xl font-headline text-center">Bem-vindo ao Patrimonio</CardTitle>
+                    <CardDescription className="text-center">
+                       Selecione a aba para entrar ou se cadastrar.
+                    </CardDescription>
+                     <TabsList className="grid w-full grid-cols-2 mt-4">
+                        <TabsTrigger value="login">Entrar</TabsTrigger>
+                        <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+                    </TabsList>
+                </CardHeader>
+                <CardContent>
+                    <TabsContent value="login">
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="login-email">Email</Label>
+                                <Input
+                                    id="login-email"
+                                    type="email"
+                                    placeholder="seu@email.com"
+                                    required
+                                    value={loginEmail}
+                                    onChange={(e) => setLoginEmail(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="login-password">Senha</Label>
+                                <Input
+                                    id="login-password"
+                                    type="password"
+                                    required
+                                    value={loginPassword}
+                                    onChange={(e) => setLoginPassword(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <Button onClick={handleLogin} className="w-full" disabled={isPending}>
+                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Entrar
+                            </Button>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="signup">
+                       <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="signup-name">Nome</Label>
+                                <Input 
+                                    id="signup-name" 
+                                    placeholder="Seu Nome" 
+                                    required 
+                                    value={signupName}
+                                    onChange={(e) => setSignupName(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="signup-email">Email</Label>
+                                <Input
+                                    id="signup-email"
+                                    type="email"
+                                    placeholder="seu@email.com"
+                                    required
+                                    value={signupEmail}
+                                    onChange={(e) => setSignupEmail(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="signup-password">Senha</Label>
+                                <Input 
+                                    id="signup-password" 
+                                    type="password" 
+                                    required 
+                                    value={signupPassword}
+                                    onChange={(e) => setSignupPassword(e.target.value)}
+                                    disabled={isPending}
+                                />
+                            </div>
+                            <Button onClick={handleSignUp} className="w-full" disabled={isPending}>
+                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Cadastrar
+                            </Button>
+                        </div>
+                    </TabsContent>
+                </CardContent>
+            </Card>
+        </Tabs>
     </div>
   );
 }
