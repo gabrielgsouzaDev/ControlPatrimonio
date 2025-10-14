@@ -68,13 +68,15 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const { data: locations, isLoading: isLoadingLocations } = useCollection<Location>(locationsQuery);
 
   const uniqueCities = useMemo(() => {
-    if (!locations) return ["all"];
-    return ["all", ...locations.map((loc) => loc.name)];
+    if (!locations) return [];
+    const cityNames = locations.map((loc) => loc.name).sort();
+    return ["all", ...cityNames];
   }, [locations]);
 
   const uniqueCategories = useMemo(() => {
-    if (!categories) return ["all"];
-    return ["all", ...categories.map(c => c.name)];
+    if (!categories) return [];
+    const categoryNames = categories.map(c => c.name).sort();
+    return ["all", ...categoryNames];
   }, [categories]);
 
   const filteredAssets = useMemo(() => {
@@ -195,51 +197,54 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
   return (
     <>
-      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-2 mb-4">
-        <div className="relative w-full md:w-auto md:flex-grow">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Pesquisar por nome ou código..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[300px]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <div className="flex flex-col gap-4 mb-4">
+        <div className="flex flex-col md:flex-row gap-2">
+            <div className="relative w-full md:flex-grow">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Pesquisar por nome ou código..."
+                  className="w-full rounded-lg bg-background pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
+               <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueCities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city === "all" ? "Todas as Cidades" : city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category === "all" ? "Todas as Categorias" : category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto justify-end">
-           <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por cidade" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueCities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city === "all" ? "Todas as Cidades" : city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueCategories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category === "all" ? "Todas as Categorias" : category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  <span className="hidden sm:inline ml-2">Exportar</span>
+                <Button variant="outline" disabled={isPending} className="flex-shrink-0">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <Download className="h-4 w-4 md:mr-2" />}
+                  <span className="hidden md:inline">Exportar</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleExportCsv}>
                   <FileSpreadsheet className="mr-2 h-4 w-4" />
                   <span>Exportar para CSV</span>
@@ -259,11 +264,12 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
                 <Settings className="h-4 w-4" />
                 <span className="sr-only">Gerenciar Categorias</span>
             </Button>
-            <Button onClick={() => setDialogState({ type: "add" })} className="w-full sm:w-auto">
-                <PlusCircle className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Adicionar</span>
-            </Button>
-          </div>
+            <div className="ml-auto">
+                <Button onClick={() => setDialogState({ type: "add" })}>
+                    <PlusCircle className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Adicionar</span>
+                </Button>
+            </div>
         </div>
       </div>
 

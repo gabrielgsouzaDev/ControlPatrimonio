@@ -32,15 +32,15 @@ export default function HistoryClient() {
   const { data: history, isLoading: isLoadingHistory } = useCollection<HistoryLog>(historyQuery);
 
   const uniqueActions = useMemo(() => {
-    if (!history) return ["all"];
+    if (!history) return [];
     const actions = new Set(history.map((log) => log.action));
-    return ["all", ...Array.from(actions)];
+    return ["all", ...Array.from(actions).sort()];
   }, [history]);
 
   const uniqueUsers = useMemo(() => {
-    if (!history) return ["all"];
+    if (!history) return [];
     const users = new Set(history.map((log) => log.userDisplayName));
-    return ["all", ...Array.from(users)];
+    return ["all", ...Array.from(users).sort()];
   }, [history]);
 
   const filteredHistory = useMemo(() => {
@@ -119,7 +119,7 @@ export default function HistoryClient() {
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-center justify-between space-y-2 mb-4">
         <div>
           <h2 className="text-3xl font-headline tracking-tight">
             Histórico de Alterações
@@ -129,50 +129,54 @@ export default function HistoryClient() {
           </p>
         </div>
       </div>
-      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-2 mb-4">
-        <div className="relative w-full md:w-auto md:flex-grow">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Pesquisar por item ou código..."
-            className="w-full rounded-lg bg-background pl-8 md:w-[300px]"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col gap-4 mb-4">
+        <div className="flex flex-col md:flex-row gap-2">
+            <div className="relative w-full md:flex-grow">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Pesquisar por item ou código..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
+              <Select value={actionFilter} onValueChange={setActionFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por ação" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueActions.map((action) => (
+                    <SelectItem key={action} value={action}>
+                      {action === "all" ? "Todas as Ações" : action}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={userFilter} onValueChange={setUserFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por usuário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueUsers.map((user) => (
+                    <SelectItem key={user} value={user}>
+                      {user === "all" ? "Todos os Usuários" : user}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto justify-end">
-          <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por ação" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueActions.map((action) => (
-                <SelectItem key={action} value={action}>
-                  {action === "all" ? "Todas as Ações" : action}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por usuário" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueUsers.map((user) => (
-                <SelectItem key={user} value={user}>
-                  {user === "all" ? "Todos os Usuários" : user}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DropdownMenu>
+        <div className="flex items-center gap-2">
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  <span className="ml-2">Exportar</span>
+                <Button variant="outline" disabled={isPending} className="flex-shrink-0">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin md:mr-2" /> : <Download className="h-4 w-4 md:mr-2" />}
+                  <span className="hidden md:inline">Exportar</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleExportCsv}>
                   <FileSpreadsheet className="mr-2 h-4 w-4" />
                   <span>Exportar para CSV</span>
