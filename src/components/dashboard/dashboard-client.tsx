@@ -38,7 +38,7 @@ import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { ManageLocationsDialog } from "./manage-locations-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, Timestamp } from "firebase/firestore";
 import { exportAssetsToPdf } from "@/lib/pdf-export";
 
 type DialogState =
@@ -49,11 +49,17 @@ type DialogState =
   | { type: "manage-locations" }
   | null;
 
+export type SortConfig = {
+  key: keyof Asset;
+  direction: 'asc' | 'desc';
+};
+
 export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogState, setDialogState] = useState<DialogState>(null);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
   const [isPending, startTransition] = useTransition();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -79,10 +85,18 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     return ["all", ...categoryNames];
   }, [categories]);
 
-  const filteredAssets = useMemo(() => {
+  const requestSort = (key: keyof Asset) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAndFilteredAssets = useMemo(() => {
     if (!assets) return [];
     
-    let filtered = assets;
+    let filtered = [...assets];
 
     const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
 
@@ -108,6 +122,29 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       );
     }
     
+    // Sorting logic
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        let comparison = 0;
+        if (sortConfig.key === 'updatedAt') {
+           const timeA = a.updatedAt instanceof Timestamp ? a.updatedAt.toMillis() : (a.updatedAt ? new Date(a.updatedAt).getTime() : 0);
+           const timeB = b.updatedAt instanceof Timestamp ? b.updatedAt.toMillis() : (b.updatedAt ? new Date(b.updatedAt).getTime() : 0);
+           comparison = timeA > timeB ? 1 : -1;
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+            comparison = aValue - bValue;
+        } else if (aValue && bValue) {
+            comparison = String(aValue).localeCompare(String(bValue), 'pt-BR', { numeric: true });
+        } else {
+           comparison = aValue ? 1 : -1;
+        }
+
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      });
+    }
+
     const categoryMap = new Map((categories || []).map(cat => [cat.id, cat.name]));
     return filtered.map(asset => ({
         ...asset,
@@ -115,7 +152,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         city: locationMap.get(asset.city) || 'Sem Localização'
     }));
 
-  }, [assets, categories, locations, cityFilter, categoryFilter, searchTerm]);
+  }, [assets, categories, locations, cityFilter, categoryFilter, searchTerm, sortConfig]);
 
   const handleFormSubmit = () => {
     setDialogState(null);
@@ -148,7 +185,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const handleExportCsv = () => {
     startTransition(async () => {
         try {
-            const csvString = await exportAssetsToCsv(filteredAssets);
+            const csvString = await exportAssetsToCsv(sortedAndFilteredAssets);
             if (!csvString) {
                 toast({ variant: "destructive", title: "Exportação Falhou", description: "Não há dados para exportar."});
                 return;
@@ -172,7 +209,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const handleExportPdf = () => {
     startTransition(() => {
       try {
-        exportAssetsToPdf(filteredAssets);
+        exportAssetsToPdf(sortedAndFilteredAssets);
         toast({
           title: "Exportação de PDF",
           description: "O arquivo PDF foi gerado e o download será iniciado.",
@@ -273,9 +310,11 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
 
       <div className="mt-4 rounded-lg border shadow-sm overflow-x-auto">
         <AssetTable
-          assets={filteredAssets}
+          assets={sortedAndFilteredAssets}
           onEdit={(asset) => setDialogState({ type: "edit", asset })}
           onDelete={(asset) => setDialogState({ type: "delete", asset })}
+          sortConfig={sortConfig}
+          requestSort={requestSort}
         />
       </div>
       

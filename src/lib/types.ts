@@ -10,6 +10,8 @@ export type Asset = {
   categoryId: string; // Now required
   category?: string; // Optional: Used for display purposes after mapping
   userId?: string; // ID of the user who last modified/created
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
 };
 
 export type Category = {

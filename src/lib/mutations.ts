@@ -6,11 +6,13 @@ import {
     writeBatch, 
     serverTimestamp, 
     getDoc,
-    Firestore
+    Firestore,
+    Timestamp
 } from "firebase/firestore";
 import type { AssetFormValues } from "@/components/dashboard/add-edit-asset-form";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import type { Asset } from './types';
 
 /**
  * Adds a new asset and a corresponding history log to Firestore.
@@ -29,11 +31,12 @@ export function addAsset(
 
     // 1. Create a new asset document in the global collection
     const assetRef = doc(collection(firestore, 'assets'));
+    const now = serverTimestamp();
     const assetPayload = { 
         ...assetData, 
         userId, // Keep track of who created it
-        createdAt: serverTimestamp(), 
-        updatedAt: serverTimestamp() 
+        createdAt: now, 
+        updatedAt: now,
     };
     batch.set(assetRef, assetPayload);
 
@@ -47,7 +50,7 @@ export function addAsset(
         details: "Item novo adicionado ao inventário.",
         userId: userId,
         userDisplayName: userDisplayName,
-        timestamp: serverTimestamp()
+        timestamp: now
     };
     batch.set(historyRef, historyLog);
 
@@ -95,7 +98,7 @@ export async function updateAsset(
     if (!oldAssetSnap.exists()) {
         throw new Error("O patrimônio que você está tentando editar não existe.");
     }
-    const oldAssetData = oldAssetSnap.data();
+    const oldAssetData = oldAssetSnap.data() as Asset;
 
     const batch = writeBatch(firestore);
 
