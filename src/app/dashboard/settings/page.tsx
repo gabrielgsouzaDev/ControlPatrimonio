@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,12 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { updateProfile } from 'firebase/auth';
+import { updatePassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const profileFormSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório.' }),
@@ -22,14 +23,24 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
+const passwordFormSchema = z.object({
+  newPassword: z.string().min(6, { message: 'A nova senha deve ter no mínimo 6 caracteres.' }),
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: 'As senhas não coincidem.',
+  path: ['confirmPassword'],
+});
+
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = React.useState(false);
+  const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+  const [isSavingPassword, setIsSavingPassword] = React.useState(false);
 
-  const form = useForm<ProfileFormValues>({
+  const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: '',
@@ -37,35 +48,34 @@ export default function SettingsPage() {
     },
   });
 
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
+
   React.useEffect(() => {
     if (user) {
-      form.reset({
+      profileForm.reset({
         name: user.displayName || '',
         email: user.email || '',
       });
     }
-  }, [user, form]);
+  }, [user, profileForm]);
 
-  const onSubmit = async (data: ProfileFormValues) => {
-    if (!user || !auth.currentUser || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Usuário não autenticado.',
-      });
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    if (!user || !auth.currentUser) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
       return;
     }
 
-    setIsSaving(true);
+    setIsSavingProfile(true);
     try {
-      // Update Firebase Auth profile
       if (auth.currentUser.displayName !== data.name) {
         await updateProfile(auth.currentUser, { displayName: data.name });
       }
-
-      // Update Firestore user document
-      const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, { name: data.name, email: data.email }, { merge: true });
 
       toast({
         title: 'Sucesso',
@@ -78,9 +88,39 @@ export default function SettingsPage() {
         description: 'Não foi possível atualizar seu perfil. Tente novamente.',
       });
     } finally {
-      setIsSaving(false);
+      setIsSavingProfile(false);
     }
   };
+
+  const onPasswordSubmit = async (data: PasswordFormValues) => {
+    if (!auth.currentUser) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
+        return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+        await updatePassword(auth.currentUser, data.newPassword);
+        toast({
+            title: 'Sucesso',
+            description: 'Sua senha foi alterada.',
+        });
+        passwordForm.reset();
+    } catch (error: any) {
+        let description = 'Não foi possível alterar sua senha. Tente novamente.';
+        if (error.code === 'auth/requires-recent-login') {
+            description = 'Esta operação é sensível e requer autenticação recente. Por favor, faça login novamente para alterar sua senha.';
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao alterar senha',
+            description: description,
+        });
+    } finally {
+        setIsSavingPassword(false);
+    }
+  };
+
 
   if (isUserLoading) {
     return (
@@ -98,17 +138,17 @@ export default function SettingsPage() {
           Gerencie as configurações da sua conta.
         </p>
       </div>
-      <div className="grid gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Configurações da Conta</CardTitle>
+            <CardTitle>Perfil</CardTitle>
             <CardDescription>Atualize as informações do seu perfil.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Form {...profileForm}>
+              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
                 <FormField
-                  control={form.control}
+                  control={profileForm.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
@@ -121,7 +161,7 @@ export default function SettingsPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={profileForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
@@ -133,9 +173,53 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isSavingProfile}>
+                  {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Salvar Alterações
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader>
+            <CardTitle>Alterar Senha</CardTitle>
+            <CardDescription>
+              Para sua segurança, recomendamos o uso de uma senha forte.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Nova Senha</Label>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label>Confirmar Nova Senha</Label>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isSavingPassword}>
+                  {isSavingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Alterar Senha
                 </Button>
               </form>
             </Form>
