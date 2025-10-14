@@ -42,7 +42,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
 });
 
   return (
-    <div className="rounded-lg border shadow-sm w-full overflow-x-auto">
+    <div className="relative w-full overflow-x-auto rounded-lg border shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -51,7 +51,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
             <TableHead>Ação</TableHead>
             <TableHead>Usuário</TableHead>
             <TableHead>Detalhes</TableHead>
-            <TableHead className="text-right">Data e Hora</TableHead>
+            <TableHead className="sticky right-0 bg-card z-10 text-right">Data e Hora</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -73,7 +73,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{log.userDisplayName}</TableCell>
                 <TableCell className="text-muted-foreground max-w-[250px] truncate">{log.details}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">
+                <TableCell className="sticky right-0 bg-card z-10 text-right whitespace-nowrap">
                   {isClient && log.timestamp ? format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : ''}
                 </TableCell>
               </TableRow>

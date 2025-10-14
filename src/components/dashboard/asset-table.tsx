@@ -34,7 +34,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
   };
   
   return (
-    <div className="rounded-lg border shadow-sm w-full overflow-x-auto">
+    <div className="relative w-full overflow-x-auto rounded-lg border shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -44,7 +44,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
             <TableHead>Cidade/Local</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Observação</TableHead>
-            <TableHead className="w-16 text-center">Ações</TableHead>
+            <TableHead className="sticky right-0 bg-card z-10 text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -67,7 +67,7 @@ export function AssetTable({ assets, onEdit, onDelete }: AssetTableProps) {
                   {formatCurrency(asset.value)}
                 </TableCell>
                 <TableCell className="max-w-[200px] truncate">{asset.observation || "-"}</TableCell>
-                <TableCell className="text-center">
+                <TableCell className="sticky right-0 bg-card z-10 text-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
