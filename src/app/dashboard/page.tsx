@@ -112,7 +112,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <h2 className="text-3xl font-headline tracking-tight">Dashboard</h2>
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -121,8 +121,8 @@ export default function DashboardPage() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalAssets}</div>
-            <p className="text-xs text-muted-foreground">Itens cadastrados no sistema.</p>
+            <div className="text-xl md:text-2xl font-bold">{dashboardData.totalAssets}</div>
+            <p className="text-xs text-muted-foreground break-words">Itens cadastrados no sistema.</p>
           </CardContent>
         </Card>
         <Card>
@@ -131,8 +131,8 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(dashboardData.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">Soma dos valores de todos os itens.</p>
+            <div className="text-xl md:text-2xl font-bold break-words">{formatCurrency(dashboardData.totalValue)}</div>
+            <p className="text-xs text-muted-foreground break-words">Soma dos valores de todos os itens.</p>
           </CardContent>
         </Card>
         <Card>
@@ -141,8 +141,8 @@ export default function DashboardPage() {
             <Landmark className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalCities}</div>
-            <p className="text-xs text-muted-foreground">Cidades com patrimônio alocado.</p>
+            <div className="text-xl md:text-2xl font-bold">{dashboardData.totalCities}</div>
+            <p className="text-xs text-muted-foreground break-words">Cidades com patrimônio alocado.</p>
           </CardContent>
         </Card>
         <Card>
@@ -151,8 +151,8 @@ export default function DashboardPage() {
             <PlusSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.createdLastMonth}</div>
-            <p className="text-xs text-muted-foreground">Novos itens no último mês.</p>
+            <div className="text-xl md:text-2xl font-bold">{dashboardData.createdLastMonth}</div>
+            <p className="text-xs text-muted-foreground break-words">Novos itens no último mês.</p>
           </CardContent>
         </Card>
         <Card>
@@ -161,8 +161,8 @@ export default function DashboardPage() {
             <PenSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
-            <p className="text-xs text-muted-foreground">Atualizações no último mês.</p>
+            <div className="text-xl md:text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
+            <p className="text-xs text-muted-foreground break-words">Atualizações no último mês.</p>
           </CardContent>
         </Card>
         <Card>
@@ -171,8 +171,8 @@ export default function DashboardPage() {
             <MinusSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
-            <p className="text-xs text-muted-foreground">Remoções no último mês.</p>
+            <div className="text-xl md:text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
+            <p className="text-xs text-muted-foreground break-words">Remoções no último mês.</p>
           </CardContent>
         </Card>
       </div>
