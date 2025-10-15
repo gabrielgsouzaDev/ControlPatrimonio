@@ -61,7 +61,8 @@ export default function DashboardPage() {
         deletedLastMonth: 0,
         valueByCityChart: [],
         valueByCategoryChart: [],
-        totalAssetsChart: [],
+        itemsByCategoryChart: [],
+        itemsByCityChart: [],
         createdChart: [],
         updatedChart: [],
         deletedChart: [],
@@ -106,6 +107,20 @@ export default function DashboardPage() {
       return acc;
     }, {} as { [category: string]: number });
     const valueByCategoryChart = Object.entries(valueByCategory).map(([name, value]) => ({ name, value }));
+
+    const itemsByCategory = activeAssets.reduce((acc, asset) => {
+        const categoryName = categoryMap.get(asset.categoryId) || 'Sem Categoria';
+        acc[categoryName] = (acc[categoryName] || 0) + 1;
+        return acc;
+    }, {} as { [name: string]: number });
+    const itemsByCategoryChart = Object.entries(itemsByCategory).map(([name, count]) => ({ name: name, count }));
+
+    const itemsByCity = activeAssets.reduce((acc, asset) => {
+        const cityName = locationMap.get(asset.city) || 'Sem Localização';
+        acc[cityName] = (acc[cityName] || 0) + 1;
+        return acc;
+    }, {} as { [name: string]: number });
+    const itemsByCityChart = Object.entries(itemsByCity).map(([name, count]) => ({ name: name, count }));
     
     const generateTimeSeries = (action: HistoryLog['action']) => {
         const dataByDay = interval.reduce((acc, date) => {
@@ -129,28 +144,6 @@ export default function DashboardPage() {
             return { date: format(date, 'dd/MM'), value: cumulative };
         });
     };
-
-    const totalAssetsChart = (() => {
-        const initialCount = assets.filter(asset => {
-            const createdAt = asset.createdAt instanceof Timestamp ? asset.createdAt.toDate() : new Date(asset.createdAt);
-            return createdAt < oneMonthAgo;
-        }).length;
-        
-        let runningCount = initialCount;
-        return interval.map(date => {
-            const startOfDayDate = startOfDay(date);
-            const createdToday = history.filter(log => {
-                const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
-                return (log.action === 'Criado' || log.action === 'Reativado') && startOfDay(logDate).getTime() === startOfDayDate.getTime();
-            }).length;
-            const deletedToday = history.filter(log => {
-                const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
-                return (log.action === 'Desativado') && startOfDay(logDate).getTime() === startOfDayDate.getTime();
-            }).length;
-            runningCount += createdToday - deletedToday;
-            return { date: format(date, 'dd/MM'), value: runningCount };
-        });
-    })();
     
     return {
       totalAssets,
@@ -161,7 +154,8 @@ export default function DashboardPage() {
       deletedLastMonth,
       valueByCityChart,
       valueByCategoryChart,
-      totalAssetsChart,
+      itemsByCategoryChart,
+      itemsByCityChart,
       createdChart: generateTimeSeries('Criado'),
       updatedChart: generateTimeSeries('Atualizado'),
       deletedChart: generateTimeSeries('Desativado'),
@@ -244,15 +238,37 @@ export default function DashboardPage() {
       case 'totalAssets':
         return (
           <Card className="col-span-1 xl:col-span-4">
-            <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Evolução do Total de Itens (30 dias)</CardTitle></CardHeader>
-            <CardContent><ChartContainer config={{ value: { label: "Itens" } }} className="h-[350px] w-full">
-              <RechartsAreaChart data={dashboardData.totalAssetsChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-              </RechartsAreaChart>
-            </ChartContainer></CardContent>
+            <CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Quantidade de Itens por Categoria</CardTitle></CardHeader>
+            <CardContent className="pl-2">
+              <ChartContainer config={{ count: { label: "Quantidade" } }} className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={dashboardData.itemsByCategoryChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                    <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        );
+      case 'totalCities':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Quantidade de Itens por Cidade</CardTitle></CardHeader>
+            <CardContent className="pl-2">
+              <ChartContainer config={{ count: { label: "Quantidade" } }} className="h-[350px] w-full">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={dashboardData.itemsByCityChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                      <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
           </Card>
         );
       case 'created':
@@ -447,5 +463,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
