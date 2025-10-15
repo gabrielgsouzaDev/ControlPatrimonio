@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Star, FileCode, TrendingUp, X, Server, Palette, ShieldCheck, DollarSign } from "lucide-react";
+import { Check, Star, FileCode, TrendingUp, X, Server, Palette, ShieldCheck, DollarSign, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -22,6 +22,7 @@ export default function PropostaPage() {
       features: [
         { text: "Sistema de Autenticação Completo", included: true },
         { text: "Tela de Gestão de Patrimônio (CRUD)", included: true },
+        { text: "Responsividade (Mobile & Tablet)", included: false },
         { text: "Painel de Controle (Dashboard)", included: false },
         { text: "Gráficos e Relatórios Visuais", included: false },
         { text: "Filtros Avançados e Busca", included: false },
@@ -46,6 +47,7 @@ export default function PropostaPage() {
       features: [
         { text: "Sistema de Autenticação Completo", included: true },
         { text: "Tela de Gestão de Patrimônio (CRUD)", included: true },
+        { text: "Responsividade (Mobile & Tablet)", included: true },
         { text: "Painel de Controle (Dashboard)", included: true },
         { text: "Gráficos e Relatórios Visuais", included: true },
         { text: "Filtros Avançados e Busca", included: true },
@@ -74,6 +76,11 @@ export default function PropostaPage() {
           {plans.map((plan) => (
             <Card key={plan.name} className={`flex flex-col h-full ${plan.isFeatured ? 'border-primary ring-2 ring-primary shadow-lg' : ''}`}>
               <CardHeader className="text-center pb-4">
+                {plan.isFeatured && (
+                   <div className="flex justify-center">
+                    <Badge variant="default" className="text-sm mb-2">Recomendado</Badge>
+                   </div>
+                )}
                 <CardTitle className="text-3xl font-headline">{plan.name}</CardTitle>
                 <CardDescription className="px-4">{plan.description}</CardDescription>
               </CardHeader>
@@ -129,7 +136,7 @@ export default function PropostaPage() {
         {/* Value Proposition Section */}
         <section className="mt-16 text-center">
           <h2 className="text-3xl font-headline font-bold mb-8">O que torna este projeto valioso?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-3"><Server className="text-primary"/>Tecnologia de Ponta</CardTitle>
@@ -138,12 +145,20 @@ export default function PropostaPage() {
                 Construído com Next.js e Firebase, o sistema é rápido, seguro e escalável, utilizando a mesma infraestrutura de gigantes da tecnologia, o que reduz custos futuros de manutenção.
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><Smartphone className="text-primary"/>Design Responsivo</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                A gestão não fica presa ao escritório. O sistema se adapta a desktops, tablets e celulares, permitindo que sua equipe atualize o inventário em campo, no estoque ou em qualquer lugar.
+              </CardContent>
+            </Card>
              <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-3"><Palette className="text-primary"/>Design Profissional</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Interface intuitiva e responsiva, que funciona em qualquer dispositivo. A experiência do usuário é pensada para ser agradável e eficiente, reduzindo o tempo de treinamento da equipe.
+                Interface intuitiva e agradável que reduz o tempo de treinamento da equipe. Um sistema fácil de usar é um sistema que é, de fato, usado.
               </CardContent>
             </Card>
              <Card>
@@ -151,7 +166,7 @@ export default function PropostaPage() {
                 <CardTitle className="flex items-center gap-3"><ShieldCheck className="text-primary"/>Segurança e Auditoria</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Controle de acesso, regras de segurança no banco de dados e um histórico imutável de alterações garantem a integridade e proteção dos seus dados, essencial para a conformidade e gestão de responsabilidades.
+                Controle de acesso, regras de segurança e um histórico imutável de alterações garantem a integridade dos seus dados, essencial para a conformidade e gestão de responsabilidades.
               </CardContent>
             </Card>
              <Card>
