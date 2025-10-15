@@ -59,7 +59,6 @@ export function addAsset(
 
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
-        console.error("Error in addAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -139,7 +138,6 @@ export async function updateAsset(
 
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
-        console.error("Error in updateAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -182,10 +180,9 @@ export async function deactivateAsset(
 
     const batch = writeBatch(firestore);
     
-    // 1. Update the asset's status to "inativo"
-    batch.update(assetRef, { status: 'inativo', updatedAt: serverTimestamp() });
+    const updatePayload = { status: 'inativo', updatedAt: serverTimestamp() };
+    batch.update(assetRef, updatePayload);
     
-    // 2. Create a history log for the deactivation
     const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {
         assetId: assetId,
@@ -199,15 +196,13 @@ export async function deactivateAsset(
     };
     batch.set(historyRef, historyLog);
     
-    // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
-        console.error("Error in deactivateAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
               path: assetRef.path,
               operation: 'update',
-              requestResourceData: { status: 'inativo' },
+              requestResourceData: updatePayload,
             })
         );
         errorEmitter.emit(
