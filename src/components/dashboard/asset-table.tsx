@@ -121,7 +121,7 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(asset)}
-                      className="text-red-600 focus:bg-red-600 focus:text-white"
+                      className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       <span>Desativar</span>

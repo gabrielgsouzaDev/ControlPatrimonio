@@ -168,8 +168,14 @@ export function ManageCategoriesDialog({ open, onOpenChange, categories: initial
                                     <Button size="icon" variant="ghost" onClick={() => startEditing(category)} disabled={isPending}>
                                         <Edit className="h-4 w-4" />
                                     </Button>
-                                    <Button size="icon" variant="ghost" onClick={() => handleDeleteCategory(category.id)} disabled={isPending}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      onClick={() => handleDeleteCategory(category.id)} 
+                                      disabled={isPending}
+                                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </>
                             )}
