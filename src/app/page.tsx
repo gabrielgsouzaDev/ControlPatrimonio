@@ -41,7 +41,8 @@ export default function AuthPage() {
     }
   }, [auth.currentUser, router]);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setIsPending(true);
     try {
       await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
@@ -70,7 +71,8 @@ export default function AuthPage() {
     }
   }
 
-  const handleSignUp = async () => {
+  const handleSignUp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setIsPending(true);
 
     if (signupPassword !== signupConfirmPassword) {
@@ -132,88 +134,92 @@ export default function AuthPage() {
                         <TabsTrigger value="signup">Cadastrar</TabsTrigger>
                     </TabsList>
                     <TabsContent value="login">
-                        <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="login-email">Email</Label>
-                                <Input
-                                    id="login-email"
-                                    type="email"
-                                    placeholder="seu@email.com"
-                                    required
-                                    value={loginEmail}
-                                    onChange={(e) => setLoginEmail(e.target.value)}
-                                    disabled={isPending}
-                                />
+                        <form onSubmit={handleLogin}>
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="login-email">Email</Label>
+                                    <Input
+                                        id="login-email"
+                                        type="email"
+                                        placeholder="seu@email.com"
+                                        required
+                                        value={loginEmail}
+                                        onChange={(e) => setLoginEmail(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="login-password">Senha</Label>
+                                    <Input
+                                        id="login-password"
+                                        type="password"
+                                        required
+                                        value={loginPassword}
+                                        onChange={(e) => setLoginPassword(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full mt-2" disabled={isPending}>
+                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Entrar
+                                </Button>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="login-password">Senha</Label>
-                                <Input
-                                    id="login-password"
-                                    type="password"
-                                    required
-                                    value={loginPassword}
-                                    onChange={(e) => setLoginPassword(e.target.value)}
-                                    disabled={isPending}
-                                />
-                            </div>
-                            <Button onClick={handleLogin} className="w-full mt-2" disabled={isPending}>
-                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Entrar
-                            </Button>
-                        </div>
+                        </form>
                     </TabsContent>
                     <TabsContent value="signup">
-                       <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="signup-name">Nome</Label>
-                                <Input 
-                                    id="signup-name" 
-                                    placeholder="Seu Nome Completo" 
-                                    required 
-                                    value={signupName}
-                                    onChange={(e) => setSignupName(e.target.value)}
-                                    disabled={isPending}
-                                />
+                        <form onSubmit={handleSignUp}>
+                           <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="signup-name">Nome</Label>
+                                    <Input 
+                                        id="signup-name" 
+                                        placeholder="Seu Nome Completo" 
+                                        required 
+                                        value={signupName}
+                                        onChange={(e) => setSignupName(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="signup-email">Email</Label>
+                                    <Input
+                                        id="signup-email"
+                                        type="email"
+                                        placeholder="seu@email.com"
+                                        required
+                                        value={signupEmail}
+                                        onChange={(e) => setSignupEmail(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="signup-password">Senha</Label>
+                                    <Input 
+                                        id="signup-password" 
+                                        type="password" 
+                                        required 
+                                        value={signupPassword}
+                                        onChange={(e) => setSignupPassword(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                                    <Input 
+                                        id="signup-confirm-password" 
+                                        type="password" 
+                                        required 
+                                        value={signupConfirmPassword}
+                                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                                        disabled={isPending}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full mt-2" disabled={isPending}>
+                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Criar Conta
+                                </Button>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="signup-email">Email</Label>
-                                <Input
-                                    id="signup-email"
-                                    type="email"
-                                    placeholder="seu@email.com"
-                                    required
-                                    value={signupEmail}
-                                    onChange={(e) => setSignupEmail(e.target.value)}
-                                    disabled={isPending}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="signup-password">Senha</Label>
-                                <Input 
-                                    id="signup-password" 
-                                    type="password" 
-                                    required 
-                                    value={signupPassword}
-                                    onChange={(e) => setSignupPassword(e.target.value)}
-                                    disabled={isPending}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
-                                <Input 
-                                    id="signup-confirm-password" 
-                                    type="password" 
-                                    required 
-                                    value={signupConfirmPassword}
-                                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                                    disabled={isPending}
-                                />
-                            </div>
-                            <Button onClick={handleSignUp} className="w-full mt-2" disabled={isPending}>
-                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Criar Conta
-                            </Button>
-                        </div>
+                        </form>
                     </TabsContent>
                 </CardContent>
             </Card>
