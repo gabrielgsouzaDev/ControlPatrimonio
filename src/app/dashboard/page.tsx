@@ -91,11 +91,11 @@ export default function DashboardPage() {
     });
     
     const calculateChange = (current: number, previous: number) => {
+        if (typeof previous !== 'number' || !isFinite(previous)) {
+          return 0; // Return 0 if previous is null, undefined, NaN, or Infinity
+        }
         if (previous === 0) {
             return current > 0 ? 100 : 0; // Treat as 100% increase if previous was 0 and current is positive
-        }
-        if (isNaN(previous) || !isFinite(previous)) {
-             return 0; // Avoid division by NaN or Infinity
         }
         return ((current - previous) / previous) * 100;
     };
@@ -127,7 +127,6 @@ export default function DashboardPage() {
         return sum + (asset?.value || 0);
     }, 0);
     const valueRemoved = deactivatedInLastMonth.reduce((sum, log) => {
-        // We need to find what the value was AT THE TIME of deactivation.
         // This is a simplification; for full accuracy, we'd need value in history.
         const asset = assets.find(a => a.id === log.assetId);
         return sum + (asset?.value || 0);
@@ -143,12 +142,18 @@ export default function DashboardPage() {
     
     // City change calculation
     const cities30DaysAgo = new Set(assets.filter(a => {
-        const assetCreatedAt = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : new Date(a.createdAt);
-        if (assetCreatedAt > oneMonthAgo) return false; // Exclude assets created in the last 30 days
+        // Consider asset's creation date. If it was created in the last 30 days, it wasn't there before.
+        const assetCreatedAt = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : new Date(0));
+        if (assetCreatedAt > oneMonthAgo) return false;
+        
+        // If it was deactivated, was it active 30 days ago?
         if (a.status === 'inativo') {
-             const assetUpdatedAt = a.updatedAt instanceof Timestamp ? a.updatedAt.toDate() : new Date(a.updatedAt);
-             if(assetUpdatedAt > oneMonthAgo) return true; // Include if it was active 30 days ago
+             const assetUpdatedAt = a.updatedAt instanceof Timestamp ? a.updatedAt.toDate() : (a.updatedAt ? new Date(a.updatedAt) : new Date());
+             // if it was updated (deactivated) in the last 30 days, it was active before that
+             if(assetUpdatedAt > oneMonthAgo) return true;
         }
+        
+        // If it's active now and was created before 30 days ago, it counts.
         return a.status !== 'inativo';
     }).map(a => locationMap.get(a.city) || '').filter(Boolean)).size;
 
@@ -240,7 +245,7 @@ export default function DashboardPage() {
   };
 
   const renderChange = (change: number) => {
-    if (change === 0) {
+    if (change === 0 || !isFinite(change)) {
       return (
         <p className="text-xs text-muted-foreground flex items-center">
           <Minus className="h-4 w-4 mr-1" />
@@ -412,7 +417,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
