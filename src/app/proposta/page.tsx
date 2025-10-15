@@ -73,14 +73,6 @@ export default function PropostaPage() {
           {plans.map((plan) => (
             <Card key={plan.name} className={`flex flex-col h-full ${plan.isFeatured ? 'border-primary ring-2 ring-primary shadow-lg' : ''}`}>
               <CardHeader className="text-center pb-4">
-                {plan.isFeatured && (
-                  <div className="flex justify-center mb-2">
-                    <Badge variant="default" className="text-sm">
-                      <Star className="w-4 h-4 mr-2" />
-                      Mais Popular
-                    </Badge>
-                  </div>
-                )}
                 <CardTitle className="text-3xl font-headline">{plan.name}</CardTitle>
                 <CardDescription className="px-4">{plan.description}</CardDescription>
               </CardHeader>
@@ -185,5 +177,3 @@ export default function PropostaPage() {
     </div>
   );
 }
-
-    
