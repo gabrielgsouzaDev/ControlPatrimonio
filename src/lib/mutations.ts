@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -7,7 +8,8 @@ import {
     serverTimestamp, 
     getDoc,
     Firestore,
-    Timestamp
+    Timestamp,
+    updateDoc,
 } from "firebase/firestore";
 import type { AssetFormValues } from "@/components/dashboard/add-edit-asset-form";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -37,6 +39,7 @@ export function addAsset(
         userId, // Keep track of who created it
         createdAt: now, 
         updatedAt: now,
+        status: 'ativo' as const,
     };
     batch.set(assetRef, assetPayload);
 
@@ -157,13 +160,13 @@ export async function updateAsset(
 }
 
 /**
- * Deletes an asset and adds a corresponding history log to Firestore.
+ * Deactivates an asset (soft delete) and adds a corresponding history log.
  * @param firestore - The Firestore instance.
  * @param userId - The ID of the current user.
  * @param userDisplayName - The display name of the current user.
- * @param assetId - The ID of the asset to delete.
+ * @param assetId - The ID of the asset to deactivate.
  */
-export async function deleteAsset(
+export async function deactivateAsset(
     firestore: Firestore, 
     userId: string, 
     userDisplayName: string, 
@@ -171,7 +174,6 @@ export async function deleteAsset(
 ) {
     const assetRef = doc(firestore, 'assets', assetId);
 
-    // Get the asset data before deleting for the history log
     const assetDoc = await getDoc(assetRef);
     if (!assetDoc.exists()) {
         throw new Error("Patrimônio não encontrado.");
@@ -180,17 +182,17 @@ export async function deleteAsset(
 
     const batch = writeBatch(firestore);
     
-    // 1. Delete the asset document
-    batch.delete(assetRef);
+    // 1. Update the asset's status to "inativo"
+    batch.update(assetRef, { status: 'inativo', updatedAt: serverTimestamp() });
     
-    // 2. Create a history log for the deletion
+    // 2. Create a history log for the deactivation
     const historyRef = doc(collection(firestore, 'history'));
     const historyLog = {
         assetId: assetId,
         assetName: assetData.name,
         codeId: assetData.codeId,
-        action: "Excluído" as const,
-        details: "Item foi removido do inventário.",
+        action: "Desativado" as const,
+        details: "Item foi movido para a lixeira.",
         userId: userId,
         userDisplayName: userDisplayName,
         timestamp: serverTimestamp()
@@ -199,12 +201,13 @@ export async function deleteAsset(
     
     // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
-        console.error("Error in deleteAsset:", error);
+        console.error("Error in deactivateAsset:", error);
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
               path: assetRef.path,
-              operation: 'delete',
+              operation: 'update',
+              requestResourceData: { status: 'inativo' },
             })
         );
         errorEmitter.emit(

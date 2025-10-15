@@ -1,7 +1,8 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare } from 'lucide-react';
+import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -18,13 +19,20 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Asset, Category, Location, HistoryLog } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useTransition } from 'react';
 import { subMonths } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { exportDashboardToCsv } from '@/lib/actions';
+import { exportDashboardToPdf } from '@/lib/pdf-export';
+import { useToast } from '@/hooks/use-toast';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
@@ -50,11 +58,12 @@ export default function DashboardPage() {
       };
     }
 
-    const totalAssets = assets.length;
-    const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
-    const totalCities = new Set(assets.map(asset => asset.city)).size;
+    const activeAssets = assets.filter(asset => asset.status === 'ativo');
+
+    const totalAssets = activeAssets.length;
+    const totalValue = activeAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const totalCities = new Set(activeAssets.map(asset => asset.city)).size;
     
-    // History stats
     const oneMonthAgo = subMonths(new Date(), 1);
     const historyLastMonth = history.filter(log => {
         const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
@@ -63,11 +72,11 @@ export default function DashboardPage() {
 
     const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
     const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
-    const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Excluído').length;
+    const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
 
     const locationMap = new Map(locations.map(loc => [loc.id, loc.name]));
 
-    const valueByCity = assets.reduce((acc, asset) => {
+    const valueByCity = activeAssets.reduce((acc, asset) => {
       const cityName = locationMap.get(asset.city) || 'Sem Localização';
       acc[cityName] = (acc[cityName] || 0) + asset.value;
       return acc;
@@ -76,7 +85,7 @@ export default function DashboardPage() {
     const barChartData = Object.entries(valueByCity).map(([city, value]) => ({ city, value }));
     
     const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
-    const valueByCategory = assets.reduce((acc, asset) => {
+    const valueByCategory = activeAssets.reduce((acc, asset) => {
       const categoryName = categoryMap.get(asset.categoryId) || 'Sem Categoria';
       acc[categoryName] = (acc[categoryName] || 0) + asset.value;
       return acc;
@@ -103,6 +112,48 @@ export default function DashboardPage() {
     }).format(value);
   };
   
+  const handleExportCsv = () => {
+    startTransition(async () => {
+        try {
+            const csvString = await exportDashboardToCsv(dashboardData.barChartData, dashboardData.pieChartData);
+            if (!csvString) {
+                toast({ variant: "destructive", title: "Exportação Falhou", description: "Não há dados para exportar."});
+                return;
+            }
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'relatorio_dashboard.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast({ title: "Exportação Iniciada", description: "O download do arquivo CSV começará em breve."});
+        } catch (error) {
+            toast({ variant: "destructive", title: "Exportação Falhou", description: "Não foi possível gerar o arquivo CSV." });
+        }
+    });
+  }
+
+  const handleExportPdf = () => {
+    startTransition(() => {
+      try {
+        exportDashboardToPdf(dashboardData.barChartData, dashboardData.pieChartData);
+        toast({
+          title: "Exportação de PDF",
+          description: "O arquivo PDF foi gerado e o download será iniciado.",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Exportação Falhou",
+          description: "Não foi possível gerar o arquivo PDF.",
+        });
+      }
+    });
+  };
+
   if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
@@ -113,7 +164,27 @@ export default function DashboardPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <h2 className="text-3xl font-headline tracking-tight">Dashboard</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h2 className="text-3xl font-headline tracking-tight">Dashboard</h2>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Exportar
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportCsv}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                <span>Exportar para CSV</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportPdf}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Exportar para PDF</span>
+            </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -122,7 +193,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalAssets}</div>
-            <p className="text-xs text-muted-foreground break-words">Itens cadastrados no sistema.</p>
+            <p className="text-xs text-muted-foreground break-words">Itens ativos no sistema.</p>
           </CardContent>
         </Card>
         <Card>
@@ -132,7 +203,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold break-words">{formatCurrency(dashboardData.totalValue)}</div>
-            <p className="text-xs text-muted-foreground break-words">Soma dos valores de todos os itens.</p>
+            <p className="text-xs text-muted-foreground break-words">Soma dos valores de todos os itens ativos.</p>
           </CardContent>
         </Card>
         <Card>
@@ -167,12 +238,12 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Itens Excluídos (Mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Itens Desativados (Mês)</CardTitle>
             <MinusSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
-            <p className="text-xs text-muted-foreground break-words">Remoções no último mês.</p>
+            <p className="text-xs text-muted-foreground break-words">Itens movidos para lixeira no último mês.</p>
           </CardContent>
         </Card>
       </div>
@@ -180,7 +251,7 @@ export default function DashboardPage() {
         <Card className="xl:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <BarChart /> Valor por Cidade
+                <BarChart /> Valor por Cidade (Ativos)
             </CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
@@ -204,7 +275,7 @@ export default function DashboardPage() {
          <Card className="xl:col-span-3">
            <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <PieChart /> Distribuição por Categoria
+                <PieChart /> Distribuição por Categoria (Ativos)
             </CardTitle>
           </CardHeader>
           <CardContent>

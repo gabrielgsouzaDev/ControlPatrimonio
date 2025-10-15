@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -31,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteAsset } from "@/lib/mutations";
+import { deactivateAsset } from "@/lib/mutations";
 import { exportAssetsToCsv } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
@@ -96,7 +97,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const sortedAndFilteredAssets = useMemo(() => {
     if (!assets) return [];
     
-    let filtered = [...assets];
+    // Start with only active assets
+    let filtered = assets.filter(asset => asset.status === 'ativo');
 
     const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
 
@@ -169,14 +171,14 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const handleDelete = () => {
     if (dialogState?.type === "delete" && user && firestore) {
       startTransition(() => {
-        deleteAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id)
+        deactivateAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id)
           .then(() => {
               setDialogState(null);
-              toast({ title: "Sucesso", description: "Item excluído com sucesso." });
+              toast({ title: "Sucesso", description: "Item movido para a lixeira." });
           })
           .catch((error: any) => {
-              console.error("Error deleting asset:", error);
-              toast({ variant: "destructive", title: "Erro ao Excluir", description: error.message || "Não foi possível excluir o item."});
+              console.error("Error deactivating asset:", error);
+              toast({ variant: "destructive", title: "Erro ao Desativar", description: error.message || "Não foi possível mover o item para a lixeira."});
           })
       });
     }
@@ -351,15 +353,15 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente o item
-              <span className="font-semibold"> {dialogState?.type === 'delete' && dialogState.asset.name}</span>.
+              Esta ação não excluirá o item permanentemente. Ele será movido para a lixeira e poderá ser reativado.
+              O item a ser desativado é: <span className="font-semibold"> {dialogState?.type === 'delete' && dialogState.asset.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Excluir
+                Desativar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

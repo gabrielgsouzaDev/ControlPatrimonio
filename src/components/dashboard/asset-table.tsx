@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -118,9 +119,9 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
                       <Edit className="mr-2 h-4 w-4" />
                       <span>Editar</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(asset)}>
+                    <DropdownMenuItem onClick={() => onDelete(asset)} className="text-red-600">
                       <Trash2 className="mr-2 h-4 w-4" />
-                      <span>Excluir</span>
+                      <span>Desativar</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

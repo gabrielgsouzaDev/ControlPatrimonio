@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -15,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Building2, LogOut, Settings, Landmark, LayoutDashboard, History, Loader2, User as UserIcon } from 'lucide-react';
+import { Building2, LogOut, Settings, Landmark, LayoutDashboard, History, Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,6 +112,18 @@ export default function DashboardLayout({
                 <Link href="/dashboard/historico">
                   <History />
                   <span>Histórico</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/dashboard/lixeira'}
+                tooltip={{ children: 'Lixeira' }}
+              >
+                <Link href="/dashboard/lixeira">
+                  <Trash2 />
+                  <span>Lixeira</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

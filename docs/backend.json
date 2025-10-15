@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -59,9 +60,14 @@
         "categoryId": {
             "type": "string",
             "description": "ID of the category this asset belongs to."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["ativo", "inativo"],
+            "description": "The current status of the asset."
         }
       },
-      "required": ["id", "name", "codeId", "city", "value", "userId", "categoryId"]
+      "required": ["id", "name", "codeId", "city", "value", "userId", "categoryId", "status"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -129,7 +135,7 @@
             },
             "action": {
                 "type": "string",
-                "enum": ["Criado", "Atualizado", "Excluído"]
+                "enum": ["Criado", "Atualizado", "Excluído", "Desativado", "Reativado"]
             },
             "details": {
                 "type": "string",

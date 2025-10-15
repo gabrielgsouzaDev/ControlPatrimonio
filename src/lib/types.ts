@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 export type Asset = {
@@ -12,6 +13,7 @@ export type Asset = {
   userId?: string; // ID of the user who last modified/created
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
+  status: 'ativo' | 'inativo';
 };
 
 export type Category = {
@@ -31,11 +33,9 @@ export type HistoryLog = {
     assetId: string;
     assetName: string;
     codeId: string;
-    action: 'Criado' | 'Atualizado' | 'Excluído';
+    action: 'Criado' | 'Atualizado' | 'Excluído' | 'Desativado' | 'Reativado';
     userId: string;
     userDisplayName: string;
     timestamp: Date | Timestamp | any;
     details: string;
 }
-
-    

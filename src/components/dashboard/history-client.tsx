@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -165,7 +166,7 @@ export default function HistoryClient() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto sm:ml-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">

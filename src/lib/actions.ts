@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -13,7 +14,7 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
     return '';
   }
 
-  const headers = ['ID', 'Nome', 'Código ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observação'];
+  const headers = ['ID', 'Nome', 'Código ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observação', 'Status'];
   const rows = assets.map(asset => 
     [
       asset.id,
@@ -22,7 +23,8 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
       asset.category || "N/A",
       asset.city,
       asset.value,
-      `"${(asset.observation || '').replace(/"/g, '""')}"`
+      `"${(asset.observation || '').replace(/"/g, '""')}"`,
+      asset.status,
     ].join(',')
   );
 
@@ -48,4 +50,29 @@ export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string>
     );
 
     return [headers.join(','), ...rows].join('\n');
+}
+
+export async function exportDashboardToCsv(
+  barChartData: { city: string; value: number }[],
+  pieChartData: { category: string; value: number }[]
+): Promise<string> {
+  let csvString = '';
+
+  // Section 1: Value by City
+  csvString += 'Valor por Cidade\n';
+  csvString += 'Cidade,Valor\n';
+  barChartData.forEach(item => {
+    csvString += `"${item.city}",${item.value}\n`;
+  });
+
+  csvString += '\n'; // Separator
+
+  // Section 2: Value by Category
+  csvString += 'Distribuição por Categoria\n';
+  csvString += 'Categoria,Valor\n';
+  pieChartData.forEach(item => {
+    csvString += `"${item.category}",${item.value}\n`;
+  });
+
+  return csvString;
 }

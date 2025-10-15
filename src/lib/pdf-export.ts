@@ -1,3 +1,4 @@
+
 'use client';
 
 import jsPDF from 'jspdf';
@@ -25,7 +26,7 @@ export function exportAssetsToPdf(assets: Asset[]) {
   }
 
   const doc = new jsPDF() as jsPDFWithAutoTable;
-  const tableColumns = ['Nome', 'Código ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observação'];
+  const tableColumns = ['Nome', 'Código ID', 'Categoria', 'Cidade/Local', 'Valor', 'Status'];
   const tableRows: (string | number)[][] = [];
 
   assets.forEach(asset => {
@@ -35,7 +36,7 @@ export function exportAssetsToPdf(assets: Asset[]) {
       asset.category || 'N/A',
       asset.city,
       formatCurrency(asset.value),
-      asset.observation || '-',
+      asset.status,
     ];
     tableRows.push(assetData);
   });
@@ -87,4 +88,31 @@ export function exportHistoryToPdf(history: HistoryLog[]) {
 
   doc.text('Relatório de Histórico de Alterações', 14, 15);
   doc.save('historico_patrimonio.pdf');
+}
+
+export function exportDashboardToPdf(
+  barChartData: { city: string; value: number }[],
+  pieChartData: { category: string; value: number }[]
+) {
+  const doc = new jsPDF() as jsPDFWithAutoTable;
+  doc.text('Relatório do Dashboard', 14, 15);
+
+  // Table 1: Value by City
+  doc.text('Valor por Cidade', 14, 25);
+  doc.autoTable({
+    head: [['Cidade', 'Valor']],
+    body: barChartData.map(item => [item.city, formatCurrency(item.value)]),
+    startY: 30,
+  });
+
+  // Table 2: Value by Category
+  const lastTableY = (doc as any).lastAutoTable.finalY || 30;
+  doc.text('Distribuição por Categoria', 14, lastTableY + 15);
+  doc.autoTable({
+    head: [['Categoria', 'Valor']],
+    body: pieChartData.map(item => [item.category, formatCurrency(item.value)]),
+    startY: lastTableY + 20,
+  });
+
+  doc.save('dashboard_report.pdf');
 }

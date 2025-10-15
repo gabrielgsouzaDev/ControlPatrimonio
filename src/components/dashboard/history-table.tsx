@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -31,6 +32,8 @@ export function HistoryTable({ history }: HistoryTableProps) {
         case 'Criado': return 'default';
         case 'Atualizado': return 'secondary';
         case 'Excluído': return 'destructive';
+        case 'Desativado': return 'destructive';
+        case 'Reativado': return 'default';
         default: return 'outline';
     }
   }
