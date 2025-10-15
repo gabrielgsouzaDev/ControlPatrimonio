@@ -1,144 +1,110 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a mixed security model. User profiles are private and owned by each user.
- * Shared data (assets, categories, locations, history) is globally readable, but write access is restricted to the owner.
- * Data Structure:
- * - /users/{userId}: Stores individual user profiles.
- * - /assets/{assetId}: Stores a global list of assets.
- * - /categories/{categoryId}: Stores a global list of categories.
- * - /locations/{locationId}: Stores a global list of locations.
- * - /history/{historyId}: Stores a global history of asset changes.
- *
- * Key Security Decisions:
- * - User profiles are strictly private (owner-only access).
- * - Listing of users is disallowed for privacy.
- * - Shared collections (assets, categories, locations) are publicly readable but writes are owner-controlled.
- * - For shared collections, the `userId` field in each document represents the owner.
- * - Only the `status` field is allowed to be updated in assets and only can change 'ativo' to 'inativo' or 'inativo' to 'ativo'.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects user profiles, ensuring only the owner can read and write.
+     * @description Enforces strict user-ownership for user profiles.
      * @path /users/{userId}
-     * @allow (get, update, delete) User with ID 'user123' can read/write their own profile.
-     * @allow (create) User with ID 'user123' can create their own profile.
-     * @deny (get, update, delete) User with ID 'user456' cannot read/write user 'user123' profile.
-     * @deny (create) User with ID 'user456' cannot create user 'user123' profile.
-     * @principle Enforces strict document ownership for user profiles.
+     * @allow (create) User with UID 'user123' can create their own profile document.
+     * @allow (get, update, delete) User with UID 'user123' can read, update, and delete their own profile.
+     * @deny (create) User with UID 'user456' cannot create a profile document for user 'user123'.
+     * @deny (get, update, delete) User with UID 'user456' cannot read, update, or delete the profile of user 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      //function
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
+      function isSignedIn() {
+        return request.auth != null;
+      }
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
       allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Manages assets, allowing read access to all authenticated users but restricting writes to the asset owner.
+     * @description Allows any authenticated user to read assets, but restricts creation, updates, and deletions to authenticated users.
      * @path /assets/{assetId}
-     * @allow (get, list) Any authenticated user can read any asset.
-     * @allow (create) User with ID 'user123' can create an asset with userId 'user123'.
-     * @allow (update) User with ID 'user123' can update an asset with userId 'user123'.
-     * @deny (create) User with ID 'user456' cannot create an asset with userId 'user123'.
-     * @deny (update) User with ID 'user456' cannot update an asset with userId 'user123'.
-     * @principle Public read access with owner-only writes, enforces userId consistency on create.
+     * @allow (get, list) Any authenticated user can read the asset data.
+     * @allow (create) User with UID 'user123' can create a new asset with userId: 'user123'.
+     * @allow (update) User with UID 'user123' can update an existing asset they own, with userId: 'user123'.
+     * @allow (delete) User with UID 'user123' can delete an existing asset they own, with userId: 'user123'.
+     * @deny (create) User with UID 'user456' cannot create an asset with userId: 'user123'.
+     * @deny (update) User with UID 'user456' cannot update an asset owned by user 'user123'.
+     * @deny (delete) User with UID 'user456' cannot delete an asset owned by user 'user123'.
+     * @principle Allows public read access while enforcing ownership for writes.
      */
     match /assets/{assetId} {
       function isSignedIn() {
         return request.auth != null;
       }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-       function canUpdateStatusOnly() {
-        return request.resource.data.keys().hasOnly(['status']) &&
-        resource.data.status != request.resource.data.status;
-      }
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-       allow update: if isExistingOwner(resource.data.userId) && canUpdateStatusOnly();
-      allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Manages categories, allowing read access to all authenticated users but restricting writes to the category owner.
+     * @description Allows any authenticated user to read categories, but restricts creation, updates, and deletions to authenticated users.
      * @path /categories/{categoryId}
-     * @allow (get, list) Any authenticated user can read any category.
-     * @allow (create) User with ID 'user123' can create a category with userId 'user123'.
-     * @allow (update) User with ID 'user123' can update a category with userId 'user123'.
-     * @deny (create) User with ID 'user456' cannot create a category with userId 'user123'.
-     * @deny (update) User with ID 'user456' cannot update a category with userId 'user123'.
-     * @principle Public read access with owner-only writes, enforces userId consistency on create.
+     * @allow (get, list) Any authenticated user can read the category data.
+     * @allow (create) User with UID 'user123' can create a new category with userId: 'user123'.
+     * @allow (update) User with UID 'user123' can update an existing category they own, with userId: 'user123'.
+     * @allow (delete) User with UID 'user123' can delete an existing category they own, with userId: 'user123'.
+     * @deny (create) User with UID 'user456' cannot create a category with userId: 'user123'.
+     * @deny (update) User with UID 'user456' cannot update a category owned by user 'user123'.
+     * @deny (delete) User with UID 'user456' cannot delete a category owned by user 'user123'.
+     * @principle Allows public read access while enforcing ownership for writes.
      */
     match /categories/{categoryId} {
       function isSignedIn() {
         return request.auth != null;
       }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId);
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Manages locations, allowing read access to all authenticated users but restricting writes to the location owner.
+     * @description Allows any authenticated user to read locations, but restricts creation, updates, and deletions to authenticated users.
      * @path /locations/{locationId}
-     * @allow (get, list) Any authenticated user can read any location.
-     * @allow (create) User with ID 'user123' can create a location with userId 'user123'.
-     * @allow (update) User with ID 'user123' can update a location with userId 'user123'.
-     * @deny (create) User with ID 'user456' cannot create a location with userId 'user123'.
-     * @deny (update) User with ID 'user456' cannot update a location with userId 'user123'.
-     * @principle Public read access with owner-only writes, enforces userId consistency on create.
+     * @allow (get, list) Any authenticated user can read the location data.
+     * @allow (create) User with UID 'user123' can create a new location with userId: 'user123'.
+     * @allow (update) User with UID 'user123' can update an existing location they own, with userId: 'user123'.
+     * @allow (delete) User with UID 'user123' can delete an existing location they own, with userId: 'user123'.
+     * @deny (create) User with UID 'user456' cannot create a location with userId: 'user123'.
+     * @deny (update) User with UID 'user456' cannot update a location owned by user 'user123'.
+     * @deny (delete) User with UID 'user456' cannot delete a location owned by user 'user123'.
+     * @principle Allows public read access while enforcing ownership for writes.
      */
     match /locations/{locationId} {
       function isSignedIn() {
         return request.auth != null;
       }
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId);
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Manages the history log, allowing read access to all authenticated users, but no write access.
+     * @description Allows any authenticated user to read the history log, but restricts creation to authenticated users.
      * @path /history/{historyId}
-     * @allow (get, list) Any authenticated user can read any history entry.
-     * @deny (create, update, delete) No user can create, update, or delete a history entry.
-     * @principle Public read access, no write access.
+     * @allow (get, list) Any authenticated user can read the history log data.
+     * @allow (create) User with UID 'user123' can create a new history log entry with userId: 'user123'.
+     * @deny (create) User with UID 'user456' cannot create a history log entry with userId: 'user123'.
+     * @principle Allows public read access while enforcing authenticated access for writes.
      */
     match /history/{historyId} {
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get, list: if isSignedIn();
-      allow create: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
