@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Star, FileCode, TrendingUp, X } from "lucide-react";
+import { Check, Star, FileCode, TrendingUp, X, Server, Palette, ShieldCheck, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -74,10 +74,6 @@ export default function PropostaPage() {
           {plans.map((plan) => (
             <Card key={plan.name} className={`flex flex-col h-full ${plan.isFeatured ? 'border-primary ring-2 ring-primary shadow-lg' : ''}`}>
               <CardHeader className="text-center pb-4">
-                {plan.isFeatured && (
-                  <div className="flex justify-center">
-                  </div>
-                )}
                 <CardTitle className="text-3xl font-headline">{plan.name}</CardTitle>
                 <CardDescription className="px-4">{plan.description}</CardDescription>
               </CardHeader>
@@ -108,7 +104,7 @@ export default function PropostaPage() {
                     <h4 className="font-semibold mb-4 text-center">Opções de Pagamento:</h4>
                     <ul className="space-y-2 text-sm text-center">
                         {plan.paymentOptions.map(opt => (
-                           <li key={opt} className={`font-medium ${opt.includes('25% OFF') ? 'text-primary text-base font-bold' : ''}`}>{opt}</li>
+                           <li key={opt} className={`font-medium ${opt.includes('25% OFF') || opt.includes('10% OFF') ? 'text-primary' : ''} ${opt.includes('25% OFF') ? 'text-base font-bold' : ''}`}>{opt}</li>
                         ))}
                     </ul>
                 </div>
@@ -129,6 +125,45 @@ export default function PropostaPage() {
             </Card>
           ))}
         </div>
+        
+        {/* Value Proposition Section */}
+        <section className="mt-16 text-center">
+          <h2 className="text-3xl font-headline font-bold mb-8">O que torna este projeto valioso?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><Server className="text-primary"/>Tecnologia Moderna</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Construído com Next.js e Firebase, o sistema é rápido, seguro e escalável, utilizando a mesma infraestrutura de gigantes da tecnologia.
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><Palette className="text-primary"/>Design Profissional</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Interface intuitiva e responsiva, que funciona em qualquer dispositivo. A experiência do usuário é pensada para ser agradável e eficiente.
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><ShieldCheck className="text-primary"/>Segurança e Auditoria</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Controle de acesso, regras de segurança no banco de dados e um histórico imutável de alterações garantem a integridade e proteção dos seus dados.
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><DollarSign className="text-primary"/>Ferramenta de Negócio</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Este não é só um software, é uma solução que gera valor real: organização, redução de perdas e dados para decisões inteligentes.
+              </CardContent>
+            </Card>
+          </div>
+        </section>
 
         {/* Market Value Section */}
         <section className="mt-16">
