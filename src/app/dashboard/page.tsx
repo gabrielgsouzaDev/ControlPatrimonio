@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -20,12 +20,13 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Asset, Category, Location, HistoryLog } from '@/lib/types';
 import { useMemo, useTransition } from 'react';
-import { subMonths } from 'date-fns';
+import { subMonths, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportDashboardToCsv } from '@/lib/actions';
 import { exportDashboardToPdf } from '@/lib/pdf-export';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
@@ -53,6 +54,9 @@ export default function DashboardPage() {
         createdLastMonth: 0,
         updatedLastMonth: 0,
         deletedLastMonth: 0,
+        createdChange: 0,
+        updatedChange: 0,
+        deletedChange: 0,
         barChartData: [],
         pieChartData: [],
       };
@@ -64,15 +68,39 @@ export default function DashboardPage() {
     const totalValue = activeAssets.reduce((sum, asset) => sum + asset.value, 0);
     const totalCities = new Set(activeAssets.map(asset => asset.city)).size;
     
-    const oneMonthAgo = subMonths(new Date(), 1);
+    // Date ranges
+    const now = new Date();
+    const oneMonthAgo = subDays(now, 30);
+    const twoMonthsAgo = subDays(now, 60);
+
     const historyLastMonth = history.filter(log => {
         const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
-        return logDate > oneMonthAgo;
+        return logDate >= oneMonthAgo && logDate <= now;
     });
 
+    const historyPreviousMonth = history.filter(log => {
+        const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
+        return logDate >= twoMonthsAgo && logDate < oneMonthAgo;
+    });
+    
     const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
     const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
     const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
+
+    const createdPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Criado').length;
+    const updatedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Atualizado').length;
+    const deletedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Desativado').length;
+
+    const calculateChange = (current: number, previous: number) => {
+        if (previous === 0) {
+            return current > 0 ? 100 : 0; // Treat as 100% increase if previous was 0 and current is positive
+        }
+        return ((current - previous) / previous) * 100;
+    };
+    
+    const createdChange = calculateChange(createdLastMonth, createdPreviousMonth);
+    const updatedChange = calculateChange(updatedLastMonth, updatedPreviousMonth);
+    const deletedChange = calculateChange(deletedLastMonth, deletedPreviousMonth);
 
     const locationMap = new Map(locations.map(loc => [loc.id, loc.name]));
 
@@ -100,6 +128,9 @@ export default function DashboardPage() {
       createdLastMonth,
       updatedLastMonth,
       deletedLastMonth,
+      createdChange,
+      updatedChange,
+      deletedChange,
       barChartData,
       pieChartData,
     };
@@ -152,6 +183,27 @@ export default function DashboardPage() {
         });
       }
     });
+  };
+
+  const renderChange = (change: number) => {
+    if (change === 0) {
+      return (
+        <p className="text-xs text-muted-foreground flex items-center">
+          <Minus className="h-4 w-4 mr-1" />
+          {change.toFixed(1)}% vs mês anterior
+        </p>
+      );
+    }
+    const isPositive = change > 0;
+    return (
+      <p className={cn(
+        "text-xs flex items-center",
+        isPositive ? "text-green-600" : "text-red-600"
+      )}>
+        {isPositive ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
+        {isPositive ? '+' : ''}{change.toFixed(1)}% vs mês anterior
+      </p>
+    );
   };
 
   if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
@@ -223,7 +275,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.createdLastMonth}</div>
-            <p className="text-xs text-muted-foreground break-words">Novos itens no último mês.</p>
+            {renderChange(dashboardData.createdChange)}
           </CardContent>
         </Card>
         <Card>
@@ -233,7 +285,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
-            <p className="text-xs text-muted-foreground break-words">Atualizações no último mês.</p>
+            {renderChange(dashboardData.updatedChange)}
           </CardContent>
         </Card>
         <Card>
@@ -243,7 +295,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
-            <p className="text-xs text-muted-foreground break-words">Itens movidos para lixeira no último mês.</p>
+            {renderChange(dashboardData.deletedChange)}
           </CardContent>
         </Card>
       </div>
@@ -306,3 +358,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
