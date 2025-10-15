@@ -132,10 +132,10 @@ export default function PropostaPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-3"><Server className="text-primary"/>Tecnologia Moderna</CardTitle>
+                <CardTitle className="flex items-center gap-3"><Server className="text-primary"/>Tecnologia de Ponta</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Construído com Next.js e Firebase, o sistema é rápido, seguro e escalável, utilizando a mesma infraestrutura de gigantes da tecnologia.
+                Construído com Next.js e Firebase, o sistema é rápido, seguro e escalável, utilizando a mesma infraestrutura de gigantes da tecnologia, o que reduz custos futuros de manutenção.
               </CardContent>
             </Card>
              <Card>
@@ -143,7 +143,7 @@ export default function PropostaPage() {
                 <CardTitle className="flex items-center gap-3"><Palette className="text-primary"/>Design Profissional</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Interface intuitiva e responsiva, que funciona em qualquer dispositivo. A experiência do usuário é pensada para ser agradável e eficiente.
+                Interface intuitiva e responsiva, que funciona em qualquer dispositivo. A experiência do usuário é pensada para ser agradável e eficiente, reduzindo o tempo de treinamento da equipe.
               </CardContent>
             </Card>
              <Card>
@@ -151,7 +151,7 @@ export default function PropostaPage() {
                 <CardTitle className="flex items-center gap-3"><ShieldCheck className="text-primary"/>Segurança e Auditoria</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Controle de acesso, regras de segurança no banco de dados e um histórico imutável de alterações garantem a integridade e proteção dos seus dados.
+                Controle de acesso, regras de segurança no banco de dados e um histórico imutável de alterações garantem a integridade e proteção dos seus dados, essencial para a conformidade e gestão de responsabilidades.
               </CardContent>
             </Card>
              <Card>
@@ -159,7 +159,7 @@ export default function PropostaPage() {
                 <CardTitle className="flex items-center gap-3"><DollarSign className="text-primary"/>Ferramenta de Negócio</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Este não é só um software, é uma solução que gera valor real: organização, redução de perdas e dados para decisões inteligentes.
+                Este não é só um software, é uma solução que gera valor real: organização, redução de perdas por descontrole de ativos e dados centralizados para decisões estratégicas mais rápidas.
               </CardContent>
             </Card>
           </div>
