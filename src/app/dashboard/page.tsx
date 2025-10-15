@@ -20,7 +20,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Asset, Category, Location, HistoryLog } from '@/lib/types';
 import { useMemo, useTransition } from 'react';
-import { subMonths, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportDashboardToCsv } from '@/lib/actions';
@@ -61,8 +61,9 @@ export default function DashboardPage() {
         pieChartData: [],
       };
     }
-
-    const activeAssets = assets.filter(asset => asset.status === 'ativo');
+    
+    // Treat assets without a status or with status 'ativo' as active.
+    const activeAssets = assets.filter(asset => asset.status !== 'inativo');
 
     const totalAssets = activeAssets.length;
     const totalValue = activeAssets.reduce((sum, asset) => sum + asset.value, 0);
@@ -358,5 +359,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

@@ -97,8 +97,8 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const sortedAndFilteredAssets = useMemo(() => {
     if (!assets) return [];
     
-    // Start with only active assets
-    let filtered = assets.filter(asset => asset.status === 'ativo');
+    // Treat assets without a status or with status 'ativo' as active.
+    let filtered = assets.filter(asset => asset.status !== 'inativo');
 
     const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
 
