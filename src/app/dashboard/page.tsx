@@ -2,12 +2,14 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { AreaChart, BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
   Pie,
   PieChart as RechartsPieChart,
+  Area,
+  AreaChart as RechartsAreaChart,
   XAxis,
   YAxis,
   Tooltip,
@@ -19,8 +21,8 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Asset, Category, Location, HistoryLog } from '@/lib/types';
-import { useMemo, useTransition } from 'react';
-import { subDays } from 'date-fns';
+import { useMemo, useState, useTransition } from 'react';
+import { subDays, startOfDay, eachDayOfInterval, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportDashboardToCsv } from '@/lib/actions';
@@ -29,10 +31,13 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+type ActiveChart = 'totalAssets' | 'totalValue' | 'totalCities' | 'created' | 'updated' | 'deleted';
+
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const [isPending, startTransition] = useTransition();
+  const [activeChart, setActiveChart] = useState<ActiveChart>('totalValue');
   const { toast } = useToast();
 
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
@@ -54,8 +59,12 @@ export default function DashboardPage() {
         createdLastMonth: 0,
         updatedLastMonth: 0,
         deletedLastMonth: 0,
-        barChartData: [],
-        pieChartData: [],
+        valueByCityChart: [],
+        valueByCategoryChart: [],
+        totalAssetsChart: [],
+        createdChart: [],
+        updatedChart: [],
+        deletedChart: [],
       };
     }
     
@@ -71,6 +80,7 @@ export default function DashboardPage() {
     // Date ranges
     const now = new Date();
     const oneMonthAgo = subDays(now, 30);
+    const interval = eachDayOfInterval({ start: oneMonthAgo, end: now });
 
     const historyLastMonth = history.filter(log => {
         const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
@@ -81,14 +91,13 @@ export default function DashboardPage() {
     const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
     const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
     
-    // Chart data
+    // Chart data generation
     const valueByCity = activeAssets.reduce((acc, asset) => {
       const cityName = locationMap.get(asset.city) || 'Sem Localização';
       acc[cityName] = (acc[cityName] || 0) + asset.value;
       return acc;
     }, {} as { [city: string]: number });
-
-    const barChartData = Object.entries(valueByCity).map(([city, value]) => ({ city, value }));
+    const valueByCityChart = Object.entries(valueByCity).map(([city, value]) => ({ name: city, value }));
     
     const categoryMap = new Map((categories || []).map(cat => [cat.id, cat.name]));
     const valueByCategory = activeAssets.reduce((acc, asset) => {
@@ -96,9 +105,53 @@ export default function DashboardPage() {
       acc[categoryName] = (acc[categoryName] || 0) + asset.value;
       return acc;
     }, {} as { [category: string]: number });
+    const valueByCategoryChart = Object.entries(valueByCategory).map(([name, value]) => ({ name, value }));
     
-    const pieChartData = Object.entries(valueByCategory).map(([category, value]) => ({ category, value }));
+    const generateTimeSeries = (action: HistoryLog['action']) => {
+        const dataByDay = interval.reduce((acc, date) => {
+            acc[format(date, 'yyyy-MM-dd')] = 0;
+            return acc;
+        }, {} as { [key: string]: number });
 
+        historyLastMonth
+            .filter(log => log.action === action)
+            .forEach(log => {
+                const day = format(log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp), 'yyyy-MM-dd');
+                if (dataByDay[day] !== undefined) {
+                    dataByDay[day]++;
+                }
+            });
+        
+        let cumulative = 0;
+        return interval.map(date => {
+            const day = format(date, 'yyyy-MM-dd');
+            cumulative += dataByDay[day] || 0;
+            return { date: format(date, 'dd/MM'), value: cumulative };
+        });
+    };
+
+    const totalAssetsChart = (() => {
+        const initialCount = assets.filter(asset => {
+            const createdAt = asset.createdAt instanceof Timestamp ? asset.createdAt.toDate() : new Date(asset.createdAt);
+            return createdAt < oneMonthAgo;
+        }).length;
+        
+        let runningCount = initialCount;
+        return interval.map(date => {
+            const startOfDayDate = startOfDay(date);
+            const createdToday = history.filter(log => {
+                const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
+                return (log.action === 'Criado' || log.action === 'Reativado') && startOfDay(logDate).getTime() === startOfDayDate.getTime();
+            }).length;
+            const deletedToday = history.filter(log => {
+                const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
+                return (log.action === 'Desativado') && startOfDay(logDate).getTime() === startOfDayDate.getTime();
+            }).length;
+            runningCount += createdToday - deletedToday;
+            return { date: format(date, 'dd/MM'), value: runningCount };
+        });
+    })();
+    
     return {
       totalAssets,
       totalValue,
@@ -106,8 +159,12 @@ export default function DashboardPage() {
       createdLastMonth,
       updatedLastMonth,
       deletedLastMonth,
-      barChartData,
-      pieChartData,
+      valueByCityChart,
+      valueByCategoryChart,
+      totalAssetsChart,
+      createdChart: generateTimeSeries('Criado'),
+      updatedChart: generateTimeSeries('Atualizado'),
+      deletedChart: generateTimeSeries('Desativado'),
     };
   }, [assets, categories, locations, history]);
 
@@ -121,7 +178,7 @@ export default function DashboardPage() {
   const handleExportCsv = () => {
     startTransition(async () => {
         try {
-            const csvString = await exportDashboardToCsv(dashboardData.barChartData, dashboardData.pieChartData);
+            const csvString = await exportDashboardToCsv(dashboardData.valueByCityChart, dashboardData.valueByCategoryChart);
             if (!csvString) {
                 toast({ variant: "destructive", title: "Exportação Falhou", description: "Não há dados para exportar."});
                 return;
@@ -145,7 +202,7 @@ export default function DashboardPage() {
   const handleExportPdf = () => {
     startTransition(() => {
       try {
-        exportDashboardToPdf(dashboardData.barChartData, dashboardData.pieChartData);
+        exportDashboardToPdf(dashboardData.valueByCityChart, dashboardData.valueByCategoryChart);
         toast({
           title: "Exportação de PDF",
           description: "O arquivo PDF foi gerado e o download será iniciado.",
@@ -158,6 +215,111 @@ export default function DashboardPage() {
         });
       }
     });
+  };
+
+  const renderActiveChart = () => {
+    switch (activeChart) {
+      case 'totalValue':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart /> Valor por Cidade (Ativos)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <ChartContainer config={{ value: { label: "Valor", color: "hsl(var(--chart-1))" } }} className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={dashboardData.valueByCityChart} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
+                    <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        );
+      case 'totalAssets':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Evolução do Total de Itens (30 dias)</CardTitle></CardHeader>
+            <CardContent><ChartContainer config={{ value: { label: "Itens" } }} className="h-[350px] w-full">
+              <RechartsAreaChart data={dashboardData.totalAssetsChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+              </RechartsAreaChart>
+            </ChartContainer></CardContent>
+          </Card>
+        );
+      case 'created':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Criados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
+            <CardContent><ChartContainer config={{ value: { label: "Criados" } }} className="h-[350px] w-full">
+               <RechartsAreaChart data={dashboardData.createdChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+              </RechartsAreaChart>
+            </ChartContainer></CardContent>
+          </Card>
+        );
+      case 'updated':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Atualizados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
+            <CardContent><ChartContainer config={{ value: { label: "Atualizados" } }} className="h-[350px] w-full">
+               <RechartsAreaChart data={dashboardData.updatedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+              </RechartsAreaChart>
+            </ChartContainer></CardContent>
+          </Card>
+        );
+      case 'deleted':
+        return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Desativados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
+            <CardContent><ChartContainer config={{ value: { label: "Desativados" } }} className="h-[350px] w-full">
+               <RechartsAreaChart data={dashboardData.deletedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+              </RechartsAreaChart>
+            </ChartContainer></CardContent>
+          </Card>
+        );
+      default:
+         return (
+          <Card className="col-span-1 xl:col-span-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart /> Valor por Cidade (Ativos)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <ChartContainer config={{ value: { label: "Valor", color: "hsl(var(--chart-1))" } }} className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={dashboardData.valueByCityChart} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
+                    <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        );
+    }
   };
 
   if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
@@ -192,7 +354,7 @@ export default function DashboardPage() {
         </DropdownMenu>
       </div>
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card onClick={() => setActiveChart('totalAssets')} className={cn("cursor-pointer transition-all", activeChart === 'totalAssets' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -201,7 +363,7 @@ export default function DashboardPage() {
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalAssets}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setActiveChart('totalValue')} className={cn("cursor-pointer transition-all", activeChart === 'totalValue' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Valor Total do Patrimônio</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -210,7 +372,7 @@ export default function DashboardPage() {
             <div className="text-xl md:text-2xl font-bold break-words">{formatCurrency(dashboardData.totalValue)}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setActiveChart('totalCities')} className={cn("cursor-pointer transition-all", activeChart === 'totalCities' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Cidades</CardTitle>
             <Landmark className="h-4 w-4 text-muted-foreground" />
@@ -219,7 +381,7 @@ export default function DashboardPage() {
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalCities}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setActiveChart('created')} className={cn("cursor-pointer transition-all", activeChart === 'created' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Itens Criados (Mês)</CardTitle>
             <PlusSquare className="h-4 w-4 text-muted-foreground" />
@@ -228,7 +390,7 @@ export default function DashboardPage() {
             <div className="text-xl md:text-2xl font-bold">{dashboardData.createdLastMonth}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setActiveChart('updated')} className={cn("cursor-pointer transition-all", activeChart === 'updated' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Itens Atualizados (Mês)</CardTitle>
             <PenSquare className="h-4 w-4 text-muted-foreground" />
@@ -237,7 +399,7 @@ export default function DashboardPage() {
             <div className="text-xl md:text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card onClick={() => setActiveChart('deleted')} className={cn("cursor-pointer transition-all", activeChart === 'deleted' && 'ring-2 ring-primary')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Itens Desativados (Mês)</CardTitle>
             <MinusSquare className="h-4 w-4 text-muted-foreground" />
@@ -248,30 +410,9 @@ export default function DashboardPage() {
         </Card>
       </div>
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-7">
-        <Card className="xl:col-span-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <BarChart /> Valor por Cidade (Ativos)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-             <ChartContainer config={{
-                value: {
-                    label: "Valor",
-                    color: "hsl(var(--chart-1))",
-                },
-             }} className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={dashboardData.barChartData}>
-                  <XAxis dataKey="city" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
-                  <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-             </ChartContainer>
-          </CardContent>
-        </Card>
+        
+        {renderActiveChart()}
+        
          <Card className="xl:col-span-3">
            <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -281,18 +422,18 @@ export default function DashboardPage() {
           <CardContent>
              <ChartContainer config={{
                 value: { label: "Valor" },
-                ...dashboardData.pieChartData.reduce((acc, entry, index) => ({
+                ...dashboardData.valueByCategoryChart.reduce((acc, entry, index) => ({
                     ...acc,
-                    [entry.category]: { label: entry.category, color: `hsl(var(--chart-${index + 1}))` }
+                    [entry.name]: { label: entry.name, color: `hsl(var(--chart-${index + 1}))` }
                 }), {})
              }} className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                     <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Pie data={dashboardData.pieChartData} dataKey="value" nameKey="category" cx="50%" cy="50%" innerRadius={60} outerRadius={80} labelLine={false} label={({
+                    <Pie data={dashboardData.valueByCategoryChart} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} labelLine={false} label={({
                         percent,
                       }) => `${(percent * 100).toFixed(0)}%`}>
-                        {dashboardData.pieChartData.map((entry, index) => (
+                        {dashboardData.valueByCategoryChart.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                     </Pie>

@@ -91,8 +91,8 @@ export function exportHistoryToPdf(history: HistoryLog[]) {
 }
 
 export function exportDashboardToPdf(
-  barChartData: { city: string; value: number }[],
-  pieChartData: { category: string; value: number }[]
+  barChartData: { name: string; value: number }[],
+  pieChartData: { name: string; value: number }[]
 ) {
   const doc = new jsPDF() as jsPDFWithAutoTable;
   doc.text('Relatório do Dashboard', 14, 15);
@@ -101,7 +101,7 @@ export function exportDashboardToPdf(
   doc.text('Valor por Cidade', 14, 25);
   doc.autoTable({
     head: [['Cidade', 'Valor']],
-    body: barChartData.map(item => [item.city, formatCurrency(item.value)]),
+    body: barChartData.map(item => [item.name, formatCurrency(item.value)]),
     startY: 30,
   });
 
@@ -110,9 +110,11 @@ export function exportDashboardToPdf(
   doc.text('Distribuição por Categoria', 14, lastTableY + 15);
   doc.autoTable({
     head: [['Categoria', 'Valor']],
-    body: pieChartData.map(item => [item.category, formatCurrency(item.value)]),
+    body: pieChartData.map(item => [item.name, formatCurrency(item.value)]),
     startY: lastTableY + 20,
   });
 
   doc.save('dashboard_report.pdf');
 }
+
+    

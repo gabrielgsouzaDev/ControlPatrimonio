@@ -53,8 +53,8 @@ export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string>
 }
 
 export async function exportDashboardToCsv(
-  barChartData: { city: string; value: number }[],
-  pieChartData: { category: string; value: number }[]
+  barChartData: { name: string; value: number }[],
+  pieChartData: { name: string; value: number }[]
 ): Promise<string> {
   let csvString = '';
 
@@ -62,7 +62,7 @@ export async function exportDashboardToCsv(
   csvString += 'Valor por Cidade\n';
   csvString += 'Cidade,Valor\n';
   barChartData.forEach(item => {
-    csvString += `"${item.city}",${item.value}\n`;
+    csvString += `"${item.name}",${item.value}\n`;
   });
 
   csvString += '\n'; // Separator
@@ -71,8 +71,10 @@ export async function exportDashboardToCsv(
   csvString += 'Distribuição por Categoria\n';
   csvString += 'Categoria,Valor\n';
   pieChartData.forEach(item => {
-    csvString += `"${item.category}",${item.value}\n`;
+    csvString += `"${item.name}",${item.value}\n`;
   });
 
   return csvString;
 }
+
+    
