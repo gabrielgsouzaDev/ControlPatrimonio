@@ -14,10 +14,10 @@ export default function PropostaPage() {
       name: "Padrão",
       price: "1.000",
       description: "O essencial para começar a organizar seu patrimônio de forma digital e segura.",
-      paymentOptions: [
-        "À vista: R$ 1.000,00",
-        "3x de R$ 333,33",
-        "6x de R$ 166,67"
+       paymentOptions: [
+        "À vista com 10% OFF: R$ 900,00",
+        "2x de R$ 475,00 (5% OFF)",
+        "4x de R$ 250,00",
       ],
       features: [
         { text: "Sistema de Autenticação Completo", included: true },
@@ -38,9 +38,10 @@ export default function PropostaPage() {
       price: "5.000",
       description: "A solução completa para análise, gestão e auditoria do seu inventário com inteligência.",
        paymentOptions: [
-        "À vista com 30% OFF: R$ 3.500,00",
-        "6x de R$ 833,33",
-        "10x de R$ 500,00"
+        "À vista com 25% OFF: R$ 3.750,00",
+        "2x de R$ 2.250,00 (10% OFF)",
+        "4x de R$ 1.187,50 (5% OFF)",
+        "8x de R$ 625,00",
       ],
       features: [
         { text: "Sistema de Autenticação Completo", included: true },
@@ -82,8 +83,8 @@ export default function PropostaPage() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <div className="text-center mb-6">
-                  <span className="text-4xl font-bold">R$ {plan.price}</span>
-                  <span className="text-muted-foreground"> / projeto</span>
+                  <span className="text-muted-foreground">A partir de</span>
+                  <p className="text-4xl font-bold">R$ {plan.price}</p>
                 </div>
                 <Separator />
                 <div className="my-6">
@@ -107,7 +108,7 @@ export default function PropostaPage() {
                     <h4 className="font-semibold mb-4 text-center">Opções de Pagamento:</h4>
                     <ul className="space-y-2 text-sm text-center">
                         {plan.paymentOptions.map(opt => (
-                           <li key={opt} className={`font-medium ${opt.includes('OFF') ? 'text-primary' : ''}`}>{opt}</li>
+                           <li key={opt} className={`font-medium ${opt.includes('25% OFF') ? 'text-primary text-base font-bold' : ''}`}>{opt}</li>
                         ))}
                     </ul>
                 </div>
@@ -143,7 +144,7 @@ export default function PropostaPage() {
                     <div className="bg-background/50 p-4 rounded-lg border">
                         <h4 className="font-semibold text-lg">Seu Preço (Plano Plus)</h4>
                         <p className="text-3xl font-bold text-green-600 mt-2">R$ 5.000</p>
-                        <p className="text-sm text-muted-foreground">(ou R$ 3.500 à vista)</p>
+                        <p className="text-sm text-muted-foreground">(ou R$ 3.750 à vista com 25% OFF)</p>
                     </div>
                     <div className="bg-background/50 p-4 rounded-lg border">
                         <h4 className="font-semibold text-lg">Estimativa de Mercado</h4>
