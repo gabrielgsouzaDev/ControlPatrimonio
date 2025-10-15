@@ -130,9 +130,9 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         const bValue = b[sortConfig.key];
 
         let comparison = 0;
-        if (sortConfig.key === 'updatedAt') {
-           const timeA = a.updatedAt instanceof Timestamp ? a.updatedAt.toMillis() : (a.updatedAt ? new Date(a.updatedAt).getTime() : 0);
-           const timeB = b.updatedAt instanceof Timestamp ? b.updatedAt.toMillis() : (b.updatedAt ? new Date(b.updatedAt).getTime() : 0);
+        if (sortConfig.key === 'updatedAt' || sortConfig.key === 'createdAt') {
+           const timeA = aValue instanceof Timestamp ? aValue.toMillis() : (aValue ? new Date(aValue as any).getTime() : 0);
+           const timeB = bValue instanceof Timestamp ? bValue.toMillis() : (bValue ? new Date(bValue as any).getTime() : 0);
            comparison = timeA > timeB ? 1 : -1;
         } else if (typeof aValue === 'number' && typeof bValue === 'number') {
             comparison = aValue - bValue;
