@@ -51,6 +51,9 @@ export default function DashboardPage() {
         totalAssets: 0,
         totalValue: 0,
         totalCities: 0,
+        totalAssetsChange: 0,
+        totalValueChange: 0,
+        totalCitiesChange: 0,
         createdLastMonth: 0,
         updatedLastMonth: 0,
         deletedLastMonth: 0,
@@ -67,7 +70,10 @@ export default function DashboardPage() {
 
     const totalAssets = activeAssets.length;
     const totalValue = activeAssets.reduce((sum, asset) => sum + asset.value, 0);
-    const totalCities = new Set(activeAssets.map(asset => asset.city)).size;
+    
+    const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
+    const activeAssetsWithCityName = activeAssets.map(a => ({...a, city: locationMap.get(a.city) || ''}));
+    const totalCities = new Set(activeAssetsWithCityName.map(asset => asset.city).filter(Boolean)).size;
     
     // Date ranges
     const now = new Date();
@@ -84,27 +90,68 @@ export default function DashboardPage() {
         return logDate >= twoMonthsAgo && logDate < oneMonthAgo;
     });
     
-    const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
-    const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
-    const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
-
-    const createdPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Criado').length;
-    const updatedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Atualizado').length;
-    const deletedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Desativado').length;
-
     const calculateChange = (current: number, previous: number) => {
         if (previous === 0) {
             return current > 0 ? 100 : 0; // Treat as 100% increase if previous was 0 and current is positive
         }
         return ((current - previous) / previous) * 100;
     };
+
+    // Monthly changes for created, updated, deleted
+    const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
+    const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
+    const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
     
+    const createdPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Criado').length;
+    const updatedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Atualizado').length;
+    const deletedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Desativado').length;
+
     const createdChange = calculateChange(createdLastMonth, createdPreviousMonth);
     const updatedChange = calculateChange(updatedLastMonth, updatedPreviousMonth);
     const deletedChange = calculateChange(deletedLastMonth, deletedPreviousMonth);
 
-    const locationMap = new Map(locations.map(loc => [loc.id, loc.name]));
+    // Changes for total cards
+    const createdInLastMonth = historyLastMonth.filter(log => log.action === 'Criado');
+    const deactivatedInLastMonth = historyLastMonth.filter(log => log.action === 'Desativado');
+    const reactivatedInLastMonth = historyLastMonth.filter(log => log.action === 'Reativado');
 
+    const netItemChange = createdInLastMonth.length - deactivatedInLastMonth.length + reactivatedInLastMonth.length;
+    const totalAssets30DaysAgo = totalAssets - netItemChange;
+    const totalAssetsChange = calculateChange(totalAssets, totalAssets30DaysAgo);
+
+    const valueAdded = createdInLastMonth.reduce((sum, log) => {
+        const asset = assets.find(a => a.id === log.assetId);
+        return sum + (asset?.value || 0);
+    }, 0);
+    const valueRemoved = deactivatedInLastMonth.reduce((sum, log) => {
+        // We need to find what the value was AT THE TIME of deactivation.
+        // This is a simplification; for full accuracy, we'd need value in history.
+        const asset = assets.find(a => a.id === log.assetId);
+        return sum + (asset?.value || 0);
+    }, 0);
+     const valueReactivated = reactivatedInLastMonth.reduce((sum, log) => {
+        const asset = assets.find(a => a.id === log.assetId);
+        return sum + (asset?.value || 0);
+    }, 0);
+
+    const netValueChange = valueAdded - valueRemoved + valueReactivated;
+    const totalValue30DaysAgo = totalValue - netValueChange;
+    const totalValueChange = calculateChange(totalValue, totalValue30DaysAgo);
+    
+    // City change calculation
+    const cities30DaysAgo = new Set(assets.filter(a => {
+        const assetCreatedAt = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : new Date(a.createdAt);
+        if (assetCreatedAt > oneMonthAgo) return false; // Exclude assets created in the last 30 days
+        if (a.status === 'inativo') {
+             const assetUpdatedAt = a.updatedAt instanceof Timestamp ? a.updatedAt.toDate() : new Date(a.updatedAt);
+             if(assetUpdatedAt > oneMonthAgo) return true; // Include if it was active 30 days ago
+        }
+        return a.status !== 'inativo';
+    }).map(a => locationMap.get(a.city) || '').filter(Boolean)).size;
+
+    const totalCitiesChange = calculateChange(totalCities, cities30DaysAgo);
+    
+    // Chart data
     const valueByCity = activeAssets.reduce((acc, asset) => {
       const cityName = locationMap.get(asset.city) || 'Sem Localização';
       acc[cityName] = (acc[cityName] || 0) + asset.value;
@@ -113,7 +160,7 @@ export default function DashboardPage() {
 
     const barChartData = Object.entries(valueByCity).map(([city, value]) => ({ city, value }));
     
-    const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
+    const categoryMap = new Map((categories || []).map(cat => [cat.id, cat.name]));
     const valueByCategory = activeAssets.reduce((acc, asset) => {
       const categoryName = categoryMap.get(asset.categoryId) || 'Sem Categoria';
       acc[categoryName] = (acc[categoryName] || 0) + asset.value;
@@ -126,6 +173,9 @@ export default function DashboardPage() {
       totalAssets,
       totalValue,
       totalCities,
+      totalAssetsChange,
+      totalValueChange,
+      totalCitiesChange,
       createdLastMonth,
       updatedLastMonth,
       deletedLastMonth,
@@ -246,7 +296,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalAssets}</div>
-            <p className="text-xs text-muted-foreground break-words">Itens ativos no sistema.</p>
+            {renderChange(dashboardData.totalAssetsChange)}
           </CardContent>
         </Card>
         <Card>
@@ -256,7 +306,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold break-words">{formatCurrency(dashboardData.totalValue)}</div>
-            <p className="text-xs text-muted-foreground break-words">Soma dos valores de todos os itens ativos.</p>
+            {renderChange(dashboardData.totalValueChange)}
           </CardContent>
         </Card>
         <Card>
@@ -266,7 +316,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalCities}</div>
-            <p className="text-xs text-muted-foreground break-words">Cidades com patrimônio alocado.</p>
+             {renderChange(dashboardData.totalCitiesChange)}
           </CardContent>
         </Card>
         <Card>
@@ -359,3 +409,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
