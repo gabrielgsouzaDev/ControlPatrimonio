@@ -94,6 +94,9 @@ export default function DashboardPage() {
         if (previous === 0) {
             return current > 0 ? 100 : 0; // Treat as 100% increase if previous was 0 and current is positive
         }
+        if (isNaN(previous) || !isFinite(previous)) {
+             return 0; // Avoid division by NaN or Infinity
+        }
         return ((current - previous) / previous) * 100;
     };
 
@@ -409,5 +412,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
