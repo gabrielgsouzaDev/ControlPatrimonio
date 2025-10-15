@@ -73,6 +73,10 @@ export default function PropostaPage() {
           {plans.map((plan) => (
             <Card key={plan.name} className={`flex flex-col h-full ${plan.isFeatured ? 'border-primary ring-2 ring-primary shadow-lg' : ''}`}>
               <CardHeader className="text-center pb-4">
+                {plan.isFeatured && (
+                  <div className="flex justify-center">
+                  </div>
+                )}
                 <CardTitle className="text-3xl font-headline">{plan.name}</CardTitle>
                 <CardDescription className="px-4">{plan.description}</CardDescription>
               </CardHeader>
@@ -158,9 +162,8 @@ export default function PropostaPage() {
           <h2 className="text-3xl font-headline font-bold text-center mb-8">Próximos Passos e Termos</h2>
           <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-card border rounded-lg p-6">
-                <h4 className="font-semibold text-lg">Sinal para Início</h4>
-                <p className="text-muted-foreground mt-2 text-sm">Para dar início ao desenvolvimento, é necessário um pagamento de 30% do valor do plano escolhido. Isso garante o alinhamento e a reserva de tempo para o projeto.</p>
-                <p className="mt-3 font-bold text-primary">Ex (Plano Plus): R$ 1.500,00</p>
+                <h4 className="font-semibold text-lg">Início do Projeto</h4>
+                <p className="text-muted-foreground mt-2 text-sm">Para dar início ao desenvolvimento, é necessário o pagamento da primeira parcela (no caso de parcelamento) ou o pagamento integral (no caso de opção à vista).</p>
             </div>
              <div className="bg-card border rounded-lg p-6">
                 <h4 className="font-semibold text-lg">Manutenção Mensal (Opcional)</h4>
