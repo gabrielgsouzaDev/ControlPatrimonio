@@ -184,7 +184,7 @@ export default function DashboardLayout({
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza que deseja sair?</AlertDialogTitle>
             <AlertDialogDescription>
-              Você será redirecionado para a página de login.
+              Sua sessão será encerrada. Você precisará fazer login novamente para acessar o painel.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
