@@ -51,21 +51,14 @@ export default function DashboardPage() {
         totalAssets: 0,
         totalValue: 0,
         totalCities: 0,
-        totalAssetsChange: 0,
-        totalValueChange: 0,
-        totalCitiesChange: 0,
         createdLastMonth: 0,
         updatedLastMonth: 0,
         deletedLastMonth: 0,
-        createdChange: 0,
-        updatedChange: 0,
-        deletedChange: 0,
         barChartData: [],
         pieChartData: [],
       };
     }
     
-    // Treat assets without a status or with status 'ativo' as active.
     const activeAssets = assets.filter(asset => asset.status !== 'inativo');
 
     const totalAssets = activeAssets.length;
@@ -78,86 +71,15 @@ export default function DashboardPage() {
     // Date ranges
     const now = new Date();
     const oneMonthAgo = subDays(now, 30);
-    const twoMonthsAgo = subDays(now, 60);
 
     const historyLastMonth = history.filter(log => {
         const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
         return logDate >= oneMonthAgo && logDate <= now;
     });
 
-    const historyPreviousMonth = history.filter(log => {
-        const logDate = log.timestamp instanceof Timestamp ? log.timestamp.toDate() : new Date(log.timestamp);
-        return logDate >= twoMonthsAgo && logDate < oneMonthAgo;
-    });
-    
-    const calculateChange = (current: number, previous: number) => {
-        if (typeof previous !== 'number' || !isFinite(previous)) {
-          return 0; // Return 0 if previous is null, undefined, NaN, or Infinity
-        }
-        if (previous === 0) {
-            return current > 0 ? 100 : 0; // Treat as 100% increase if previous was 0 and current is positive
-        }
-        return ((current - previous) / previous) * 100;
-    };
-
-    // Monthly changes for created, updated, deleted
     const createdLastMonth = historyLastMonth.filter(log => log.action === 'Criado').length;
     const updatedLastMonth = historyLastMonth.filter(log => log.action === 'Atualizado').length;
     const deletedLastMonth = historyLastMonth.filter(log => log.action === 'Desativado').length;
-    
-    const createdPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Criado').length;
-    const updatedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Atualizado').length;
-    const deletedPreviousMonth = historyPreviousMonth.filter(log => log.action === 'Desativado').length;
-
-    const createdChange = calculateChange(createdLastMonth, createdPreviousMonth);
-    const updatedChange = calculateChange(updatedLastMonth, updatedPreviousMonth);
-    const deletedChange = calculateChange(deletedLastMonth, deletedPreviousMonth);
-
-    // Changes for total cards
-    const createdInLastMonth = historyLastMonth.filter(log => log.action === 'Criado');
-    const deactivatedInLastMonth = historyLastMonth.filter(log => log.action === 'Desativado');
-    const reactivatedInLastMonth = historyLastMonth.filter(log => log.action === 'Reativado');
-
-    const netItemChange = createdInLastMonth.length - deactivatedInLastMonth.length + reactivatedInLastMonth.length;
-    const totalAssets30DaysAgo = totalAssets - netItemChange;
-    const totalAssetsChange = calculateChange(totalAssets, totalAssets30DaysAgo);
-
-    const valueAdded = createdInLastMonth.reduce((sum, log) => {
-        const asset = assets.find(a => a.id === log.assetId);
-        return sum + (asset?.value || 0);
-    }, 0);
-    const valueRemoved = deactivatedInLastMonth.reduce((sum, log) => {
-        // This is a simplification; for full accuracy, we'd need value in history.
-        const asset = assets.find(a => a.id === log.assetId);
-        return sum + (asset?.value || 0);
-    }, 0);
-     const valueReactivated = reactivatedInLastMonth.reduce((sum, log) => {
-        const asset = assets.find(a => a.id === log.assetId);
-        return sum + (asset?.value || 0);
-    }, 0);
-
-    const netValueChange = valueAdded - valueRemoved + valueReactivated;
-    const totalValue30DaysAgo = totalValue - netValueChange;
-    const totalValueChange = calculateChange(totalValue, totalValue30DaysAgo);
-    
-    // City change calculation
-    const cities30DaysAgo = new Set(assets.filter(a => {
-        // Consider asset's creation date. If it was created in the last 30 days, it wasn't there before.
-        const assetCreatedAt = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : new Date(0));
-        if (assetCreatedAt > oneMonthAgo) return false;
-        
-        // If it was deactivated, was it active 30 days ago?
-        if (a.status === 'inativo') {
-             const assetUpdatedAt = a.updatedAt instanceof Timestamp ? a.updatedAt.toDate() : (a.updatedAt ? new Date(a.updatedAt) : new Date());
-             // if it was updated (deactivated) in the last 30 days, it was active before that
-             if(assetUpdatedAt > oneMonthAgo) return true;
-        }
-        
-        // If it's active now and was created before 30 days ago, it counts.
-        return a.status !== 'inativo';
-    }).map(a => locationMap.get(a.city) || '').filter(Boolean)).size;
-
-    const totalCitiesChange = calculateChange(totalCities, cities30DaysAgo);
     
     // Chart data
     const valueByCity = activeAssets.reduce((acc, asset) => {
@@ -181,15 +103,9 @@ export default function DashboardPage() {
       totalAssets,
       totalValue,
       totalCities,
-      totalAssetsChange,
-      totalValueChange,
-      totalCitiesChange,
       createdLastMonth,
       updatedLastMonth,
       deletedLastMonth,
-      createdChange,
-      updatedChange,
-      deletedChange,
       barChartData,
       pieChartData,
     };
@@ -244,27 +160,6 @@ export default function DashboardPage() {
     });
   };
 
-  const renderChange = (change: number) => {
-    if (change === 0 || !isFinite(change)) {
-      return (
-        <p className="text-xs text-muted-foreground flex items-center">
-          <Minus className="h-4 w-4 mr-1" />
-          {change.toFixed(1)}% vs mês anterior
-        </p>
-      );
-    }
-    const isPositive = change > 0;
-    return (
-      <p className={cn(
-        "text-xs flex items-center",
-        isPositive ? "text-green-600" : "text-red-600"
-      )}>
-        {isPositive ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
-        {isPositive ? '+' : ''}{change.toFixed(1)}% vs mês anterior
-      </p>
-    );
-  };
-
   if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
@@ -304,7 +199,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalAssets}</div>
-            {renderChange(dashboardData.totalAssetsChange)}
           </CardContent>
         </Card>
         <Card>
@@ -314,7 +208,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold break-words">{formatCurrency(dashboardData.totalValue)}</div>
-            {renderChange(dashboardData.totalValueChange)}
           </CardContent>
         </Card>
         <Card>
@@ -324,7 +217,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.totalCities}</div>
-             {renderChange(dashboardData.totalCitiesChange)}
           </CardContent>
         </Card>
         <Card>
@@ -334,7 +226,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.createdLastMonth}</div>
-            {renderChange(dashboardData.createdChange)}
           </CardContent>
         </Card>
         <Card>
@@ -344,7 +235,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.updatedLastMonth}</div>
-            {renderChange(dashboardData.updatedChange)}
           </CardContent>
         </Card>
         <Card>
@@ -354,7 +244,6 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl md:text-2xl font-bold">{dashboardData.deletedLastMonth}</div>
-            {renderChange(dashboardData.deletedChange)}
           </CardContent>
         </Card>
       </div>
@@ -417,3 +306,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
