@@ -97,7 +97,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const sortedAndFilteredAssets = useMemo(() => {
     if (!assets) return [];
     
-    // Treat assets without a status or with status 'ativo' as active.
     let filtered = assets.filter(asset => asset.status !== 'inativo');
 
     const locationMap = new Map((locations || []).map(loc => [loc.id, loc.name]));
@@ -169,19 +168,26 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   }
 
   const handleDelete = () => {
-    if (dialogState?.type === "delete" && user && firestore) {
-      startTransition(() => {
-        deactivateAsset(firestore, user.uid, user.displayName || "Usuário", dialogState.asset.id)
-          .then(() => {
-              setDialogState(null);
-              toast({ title: "Sucesso", description: "Item movido para a lixeira." });
-          })
-          .catch((error: any) => {
-              console.error("Error deactivating asset:", error);
-              toast({ variant: "destructive", title: "Erro ao Desativar", description: error.message || "Não foi possível mover o item para a lixeira."});
-          })
-      });
-    }
+    if (dialogState?.type !== "delete" || !user || !firestore) return;
+
+    const assetToDeactivate = dialogState.asset;
+    setDialogState(null); // Close dialog immediately for better UX
+
+    startTransition(async () => {
+      try {
+        await deactivateAsset(firestore, user.uid, user.displayName || "Usuário", assetToDeactivate.id);
+        toast({ title: "Sucesso", description: "Item movido para a lixeira." });
+      } catch (error: any) {
+        // The global error listener will catch permission errors.
+        // This catch block handles other potential issues.
+        console.error("Error deactivating asset:", error);
+        toast({ 
+            variant: "destructive", 
+            title: "Erro ao Desativar", 
+            description: error.message || "Não foi possível mover o item para a lixeira."
+        });
+      }
+    });
   };
 
   const handleExportCsv = () => {

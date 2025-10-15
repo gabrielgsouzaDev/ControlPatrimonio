@@ -196,22 +196,6 @@ export async function deactivateAsset(
     };
     batch.set(historyRef, historyLog);
     
-    batch.commit().catch((error) => {
-        errorEmitter.emit(
-            'permission-error',
-            new FirestorePermissionError({
-              path: assetRef.path,
-              operation: 'update',
-              requestResourceData: updatePayload,
-            })
-        );
-        errorEmitter.emit(
-            'permission-error',
-            new FirestorePermissionError({
-              path: historyRef.path,
-              operation: 'create',
-              requestResourceData: historyLog,
-            })
-        );
-    });
+    // Return the commit promise so the caller can await it and handle errors.
+    return batch.commit();
 }
