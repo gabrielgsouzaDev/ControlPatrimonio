@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Star, FileCode, TrendingUp, X, Server, Palette, ShieldCheck, DollarSign, Smartphone } from "lucide-react";
+import { Check, Star, FileCode, TrendingUp, X, Server, Palette, ShieldCheck, DollarSign, Smartphone, Unplug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -172,6 +172,14 @@ export default function PropostaPage() {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
                 Este não é só um software, é uma solução que gera valor real: organização, redução de perdas por descontrole de ativos e dados centralizados para decisões estratégicas mais rápidas.
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3"><Unplug className="text-primary"/>Propriedade e Autonomia</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Diferente de alugar um software, aqui você tem a opção de adquirir o código-fonte, tornando-se dono do ativo digital. Isso garante liberdade para evoluir o sistema sem depender de um fornecedor.
               </CardContent>
             </Card>
           </div>
