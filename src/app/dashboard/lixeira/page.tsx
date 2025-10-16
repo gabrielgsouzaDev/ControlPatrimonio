@@ -5,7 +5,7 @@ import { useState, useMemo, useTransition } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { Asset } from '@/lib/types';
-import { Loader2, Trash2, History } from 'lucide-react';
+import { Loader2, Trash2, History, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -29,6 +29,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+
+type SortDirection = 'asc' | 'desc';
 
 export default function LixeiraPage() {
   const firestore = useFirestore();
@@ -36,6 +39,8 @@ export default function LixeiraPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [assetToReactivate, setAssetToReactivate] = useState<Asset | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const assetsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'assets') : null),
@@ -43,11 +48,32 @@ export default function LixeiraPage() {
   );
   const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
 
-  const inactiveAssets = useMemo(() => {
-    return assets
-      ? assets.filter(asset => asset.status === 'inativo')
-      : [];
-  }, [assets]);
+  const processedAssets = useMemo(() => {
+    if (!assets) return [];
+    
+    let inactiveAssets = assets.filter(asset => asset.status === 'inativo');
+
+    if (searchTerm) {
+        const lowercasedTerm = searchTerm.toLowerCase();
+        inactiveAssets = inactiveAssets.filter(asset =>
+            asset.name.toLowerCase().includes(lowercasedTerm) ||
+            asset.codeId.toLowerCase().includes(lowercasedTerm)
+        );
+    }
+    
+    inactiveAssets.sort((a, b) => {
+        const timeA = a.updatedAt instanceof Timestamp ? a.updatedAt.toMillis() : new Date(a.updatedAt as any).getTime();
+        const timeB = b.updatedAt instanceof Timestamp ? b.updatedAt.toMillis() : new Date(b.updatedAt as any).getTime();
+        
+        if (sortDirection === 'asc') {
+            return timeA - timeB;
+        } else {
+            return timeB - timeA;
+        }
+    });
+
+    return inactiveAssets;
+  }, [assets, searchTerm, sortDirection]);
   
   const handleReactivate = () => {
     if (!assetToReactivate || !firestore || !user) return;
@@ -82,6 +108,17 @@ export default function LixeiraPage() {
     });
   };
 
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const getSortIcon = () => {
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="h-4 w-4 ml-2" />;
+    }
+    return <ArrowDown className="h-4 w-4 ml-2" />;
+  };
+
   const formatDate = (date: any) => {
     if (!date) return '-';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
@@ -99,35 +136,49 @@ export default function LixeiraPage() {
   return (
     <>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-headline tracking-tight">Lixeira</h2>
             <p className="text-muted-foreground">
               Itens desativados. Você pode reativá-los a qualquer momento.
             </p>
           </div>
+           <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nome ou código..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
         </div>
 
-        <div className="rounded-lg border shadow-sm">
+        <div className="mt-4 rounded-lg border shadow-sm">
            <div className="overflow-x-auto">
                 <Table>
                 <TableHeader>
                     <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Código ID</TableHead>
-                    <TableHead>Última Modificação</TableHead>
+                    <TableHead>
+                        <Button variant="ghost" onClick={toggleSortDirection} className="-ml-4">
+                           Última Modificação {getSortIcon()}
+                        </Button>
+                    </TableHead>
                     <TableHead className="text-right sticky right-0 bg-card z-10">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {inactiveAssets.length === 0 ? (
+                    {processedAssets.length === 0 ? (
                     <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                        A lixeira está vazia.
+                          {searchTerm ? 'Nenhum item encontrado.' : 'A lixeira está vazia.'}
                         </TableCell>
                     </TableRow>
                     ) : (
-                    inactiveAssets.map(asset => (
+                    processedAssets.map(asset => (
                         <TableRow key={asset.id}>
                         <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                         <TableCell>
