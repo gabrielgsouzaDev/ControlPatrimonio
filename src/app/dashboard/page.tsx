@@ -220,7 +220,8 @@ export default function DashboardPage() {
     setAnalysisState({ isOpen: true, isLoading: true, result: null, error: null });
 
     try {
-        const result = await analyzeInventory(dashboardData);
+        const { itemsByCategoryChart, itemsByCityChart, createdChart, updatedChart, deletedChart, ...analysisInput } = dashboardData;
+        const result = await analyzeInventory(analysisInput);
         setAnalysisState(prev => ({ ...prev, isLoading: false, result }));
     } catch (error) {
         console.error("AI analysis failed:", error);
