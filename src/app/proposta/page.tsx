@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Star, FileCode, TrendingUp, Server, Palette, ShieldCheck, DollarSign, Smartphone, Unplug, PackageCheck } from "lucide-react";
+import { Check, X, Star, FileCode, TrendingUp, Server, Palette, ShieldCheck, DollarSign, Smartphone, Unplug, PackageCheck, Briefcase, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -35,14 +35,14 @@ export default function PropostaPage() {
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Sistema de autenticação</li>
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Tela de gestão de patrimônio (CRUD)</li>
-                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Filtros e busca</li>
-                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Gestão de Categorias e Locais</li>
+                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Responsividade (Mobile e Tablet)</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Painel de controle (dashboard)</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Gráficos e relatórios visuais</li>
+                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Filtros e busca</li>
+                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Gestão de Categorias e Locais</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Histórico detalhado de alterações</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Exportação para PDF e CSV</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Lixeira (recuperação de itens)</li>
-                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Responsividade (Mobile e Tablet)</li>
                     </ul>
                     <Separator className="my-4"/>
                     <h4 className="font-semibold mb-2">Formas de Pagamento:</h4>
@@ -53,7 +53,7 @@ export default function PropostaPage() {
                     </ul>
                 </CardContent>
                  <CardFooter className="bg-muted/30 p-4 rounded-b-lg border-t">
-                    <p className="text-sm font-medium"><FileCode className="w-4 h-4 inline-block mr-2"/> <span className="font-bold">Opcional:</span> Código-fonte completo: <span className="font-bold">+ R$ 500,00</span></p>
+                    <p className="text-sm font-medium"><FileCode className="w-4 h-4 inline-block mr-2"/> <span className="font-bold">Opcional:</span> Código-fonte: <span className="font-bold">+ R$ 500,00</span></p>
                 </CardFooter>
             </Card>
 
@@ -68,14 +68,14 @@ export default function PropostaPage() {
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Sistema de autenticação</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Tela de gestão de patrimônio (CRUD)</li>
-                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Filtros e busca</li>
-                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Gestão de Categorias e Locais</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Responsividade (Mobile e Tablet)</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Painel de controle (dashboard)</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Gráficos e relatórios visuais</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Filtros e busca</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Gestão de Categorias e Locais</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Histórico detalhado de alterações</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Exportação para PDF e CSV</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Lixeira (recuperação de itens)</li>
-                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Responsividade (Mobile e Tablet)</li>
                     </ul>
                     <Separator className="my-4"/>
                     <h4 className="font-semibold mb-2">Formas de Pagamento:</h4>
@@ -86,31 +86,52 @@ export default function PropostaPage() {
                     </ul>
                 </CardContent>
                 <CardFooter className="bg-muted/30 p-4 rounded-b-lg border-t">
-                    <p className="text-sm font-medium"><FileCode className="w-4 h-4 inline-block mr-2"/> <span className="font-bold">Opcional:</span> Código-fonte completo: <span className="font-bold">+ R$ 1.000,00</span></p>
+                    <p className="text-sm font-medium"><FileCode className="w-4 h-4 inline-block mr-2"/> <span className="font-bold">Opcional:</span> Código-fonte: <span className="font-bold">+ R$ 1.000,00</span></p>
                 </CardFooter>
             </Card>
         </section>
 
-        <section className="mt-16">
-            <h2 className="text-3xl font-headline font-bold text-center mb-2">O que torna este projeto valioso?</h2>
+        <section className="mt-16 text-center">
+            <h2 className="text-3xl font-headline font-bold text-center mb-2">Análise de Investimento: Projeto Pronto vs. Contratação</h2>
             <p className="text-center text-muted-foreground mb-8 max-w-3xl mx-auto">
-                Esta não é apenas uma aplicação, mas uma ferramenta de gestão com padrão corporativo. O valor de mercado para um sistema deste nível varia entre R$ 25.000 e R$ 40.000.
+                Compare o custo de adquirir esta solução completa e testada com o custo de desenvolver um projeto similar internamente.
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 max-w-4xl mx-auto bg-muted/30 rounded-lg border shadow-sm overflow-hidden">
+                <div className="p-6 text-left">
+                    <CardTitle className="flex items-center gap-3 text-lg mb-2"><PackageCheck className="text-primary"/>Seu Investimento (Plano Plus)</CardTitle>
+                    <p className="text-sm text-muted-foreground mb-4">Valor para adquirir o projeto pronto e validado.</p>
+                    <p className="text-4xl font-bold text-primary mb-4">R$ 3.750,00 <span className="text-base font-normal text-muted-foreground">(à vista)</span></p>
+                    <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2"><Check className="text-primary w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Entrega Imediata:</span> Sistema pronto para implantação e uso.</div></li>
+                        <li className="flex items-start gap-2"><Check className="text-primary w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Escopo Definido:</span> Todas as funcionalidades já estão desenvolvidas e testadas.</div></li>
+                        <li className="flex items-start gap-2"><Check className="text-primary w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Risco Zero:</span> Sem custos ocultos ou atrasos de desenvolvimento.</div></li>
+                    </ul>
+                </div>
+                <div className="p-6 bg-card text-left border-l">
+                     <CardTitle className="flex items-center gap-3 text-lg mb-2"><Briefcase className="text-destructive"/>Custo de Desenvolvimento (Equipe Interna)</CardTitle>
+                    <p className="text-sm text-muted-foreground mb-4">Estimativa para contratar 1 dev. Sênior em SP (CLT).</p>
+                    <p className="text-4xl font-bold text-destructive mb-4">~R$ 38.000,00</p>
+                    <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2"><Clock className="text-destructive w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Tempo de Projeto:</span> Mínimo de 2-3 meses para desenvolvimento e testes.</div></li>
+                        <li className="flex items-start gap-2"><DollarSign className="text-destructive w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Custo Mensal:</span> Salário (R$12k) + Encargos (~70%) = <span className="font-bold">~R$ 19.000/mês</span>.</div></li>
+                        <li className="flex items-start gap-2"><X className="text-destructive w-4 h-4 mt-0.5 shrink-0"/><div><span className="font-semibold">Riscos Associados:</span> Custos de recrutamento, gestão de projeto e possíveis atrasos.</div></li>
+                    </ul>
+                </div>
+            </div>
+             <div className="max-w-4xl mx-auto mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg text-primary-foreground">
+                <p className="font-semibold text-center text-primary">Conclusão: Adquirir o projeto pronto representa uma economia de mais de 90% em comparação com o desenvolvimento interno, além de eliminar o tempo e o risco associados.</p>
+            </div>
+        </section>
+
+        <section className="mt-16">
+            <h2 className="text-3xl font-headline font-bold text-center mb-8">O que torna este projeto valioso?</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3 text-lg"><Server className="text-primary"/>Tecnologia de Ponta</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                        Construído com Next.js e Firebase, o sistema oferece desempenho de aplicativo, atualizações em tempo real e dispensa servidores tradicionais, reduzindo custos de hospedagem e manutenção.
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3 text-lg"><Smartphone className="text-primary"/>Gestão de Qualquer Lugar</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-muted-foreground">
-                       O design responsivo permite gerenciar, auditar e visualizar o patrimônio de qualquer dispositivo — computador, tablet ou celular —, garantindo agilidade para a equipe.
+                        Construído com Next.js e Firebase, o sistema oferece desempenho, atualizações em tempo real e dispensa servidores tradicionais, reduzindo custos de hospedagem e manutenção.
                     </CardContent>
                 </Card>
                 <Card>
@@ -119,6 +140,14 @@ export default function PropostaPage() {
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
                        A usabilidade intuitiva e os componentes de alta qualidade (ShadCN) reduzem a curva de aprendizado, economizando tempo de treinamento e aumentando a adesão da equipe.
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-lg"><Smartphone className="text-primary"/>Gestão de Qualquer Lugar</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                       O design responsivo permite gerenciar, auditar e visualizar o patrimônio de qualquer dispositivo — computador, tablet ou celular —, garantindo agilidade para a equipe.
                     </CardContent>
                 </Card>
                 <Card>
@@ -137,14 +166,12 @@ export default function PropostaPage() {
                         Diferente de um SaaS, a opção de adquirir o código-fonte transforma o software em um ativo digital da sua empresa, garantindo liberdade total para futuras customizações.
                     </CardContent>
                 </Card>
-                <Card className="bg-primary/5 border-primary/20">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-3 text-lg"><TrendingUp className="text-primary"/>Valor de Mercado Realista</CardTitle>
+                        <CardTitle className="flex items-center gap-3 text-lg"><TrendingUp className="text-primary"/>Escalabilidade Futura</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                        <p>Sistemas com este nível de complexidade (auditoria, relatórios, segurança) custam em média:</p>
-                        <p className="text-2xl font-bold text-foreground my-2">R$ 25.000 - R$ 40.000</p>
-                        <p>Seu investimento (Plano Plus) é uma oportunidade única, garantindo tecnologia de ponta por uma fração do custo.</p>
+                       A base de código moderna e a arquitetura em nuvem permitem que o sistema cresça junto com a empresa, facilitando a adição de novas funcionalidades no futuro.
                     </CardContent>
                 </Card>
             </div>
@@ -180,3 +207,5 @@ export default function PropostaPage() {
     </div>
   );
 }
+
+    
