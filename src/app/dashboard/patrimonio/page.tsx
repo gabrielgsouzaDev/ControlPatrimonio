@@ -12,7 +12,7 @@ export default async function PatrimonioPage() {
             Gerencie os itens do seu inventário.
           </p>
         </div>
-      <DashboardClient initialAssets={[]} initialCategories={[]} />
+      <DashboardClient />
     </div>
   );
 }

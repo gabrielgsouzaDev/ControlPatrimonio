@@ -79,6 +79,48 @@ export function addAsset(
 }
 
 /**
+ * Adds multiple assets and their history logs in a single batch.
+ * This is a server-side function.
+ */
+export async function addAssetsInBatch(
+    firestore: any, // Using `any` to be compatible with both client and admin SDK
+    userId: string,
+    userDisplayName: string,
+    assetsData: AssetFormValues[]
+) {
+    const batch = firestore.batch();
+    const now = Timestamp.now(); // Use admin SDK Timestamp
+
+    assetsData.forEach((assetData) => {
+        const assetRef = firestore.collection('assets').doc();
+        const assetPayload = {
+            ...assetData,
+            userId,
+            createdAt: now,
+            updatedAt: now,
+            status: 'ativo' as const,
+        };
+        batch.set(assetRef, assetPayload);
+
+        const historyRef = firestore.collection('history').doc();
+        const historyLog = {
+            assetId: assetRef.id,
+            assetName: assetData.name,
+            codeId: assetData.codeId,
+            action: "Criado" as const,
+            details: "Item importado via CSV.",
+            userId: userId,
+            userDisplayName: userDisplayName,
+            timestamp: now,
+        };
+        batch.set(historyRef, historyLog);
+    });
+
+    return batch.commit();
+}
+
+
+/**
  * Updates an existing asset and adds a corresponding history log to Firestore.
  * @param firestore - The Firestore instance.
  * @param userId - The ID of the current user.
@@ -95,7 +137,6 @@ export async function updateAsset(
 ) {
     const assetRef = doc(firestore, 'assets', assetId);
     
-    // Get old data first to calculate diff for history
     const oldAssetSnap = await getDoc(assetRef);
     if (!oldAssetSnap.exists()) {
         throw new Error("O patrimônio que você está tentando editar não existe.");
@@ -104,11 +145,9 @@ export async function updateAsset(
 
     const batch = writeBatch(firestore);
 
-    // 1. Update the asset document
-    const assetPayload = { ...assetData, userId, updatedAt: serverTimestamp() }; // Keep track of who last updated it
+    const assetPayload = { ...assetData, userId, updatedAt: serverTimestamp() }; 
     batch.update(assetRef, assetPayload);
     
-    // 2. Create a history log based on the changes
     const changes: string[] = [];
     const locationDoc = assetData.city !== oldAssetData.city ? await getDoc(doc(firestore, 'locations', assetData.city)) : null;
     const oldLocationDoc = oldAssetData.city && oldAssetData.city !== assetData.city ? await getDoc(doc(firestore, 'locations', oldAssetData.city)) : null;
@@ -136,7 +175,6 @@ export async function updateAsset(
     };
     batch.set(historyRef, historyLog);
 
-    // NON-BLOCKING: commit and handle permission errors
     batch.commit().catch((error) => {
         errorEmitter.emit(
             'permission-error',
@@ -196,6 +234,5 @@ export async function deactivateAsset(
     };
     batch.set(historyRef, historyLog);
     
-    // Return the commit promise so the caller can await it and handle errors.
     return batch.commit();
 }

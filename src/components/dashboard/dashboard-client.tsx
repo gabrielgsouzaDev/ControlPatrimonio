@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin } from "lucide-react";
+import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin, Upload } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -41,6 +41,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
 import { exportAssetsToPdf } from "@/lib/pdf-export";
+import { ImportAssetsDialog } from "./import-assets-dialog";
 
 type DialogState =
   | { type: "add" }
@@ -48,6 +49,7 @@ type DialogState =
   | { type: "delete"; asset: Asset }
   | { type: "manage-categories" }
   | { type: "manage-locations" }
+  | { type: "import" }
   | null;
 
 export type SortConfig = {
@@ -55,7 +57,7 @@ export type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-export default function DashboardClient({ initialAssets, initialCategories }: { initialAssets: Asset[], initialCategories: Category[] }) {
+export default function DashboardClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -70,7 +72,7 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
   const locationsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'locations') : null), [firestore]);
 
-  const { data: assets, isLoading: isLoadingAssets } = useCollection<Asset>(assetsQuery);
+  const { data: assets, isLoading: isLoadingAssets, forceRefetch } = useCollection<Asset>(assetsQuery);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
   const { data: locations, isLoading: isLoadingLocations } = useCollection<Location>(locationsQuery);
 
@@ -123,7 +125,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       );
     }
     
-    // Sorting logic
     if (sortConfig.key) {
       filtered.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -171,15 +172,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
     if (dialogState?.type !== "delete" || !user || !firestore) return;
 
     const assetToDeactivate = dialogState.asset;
-    setDialogState(null); // Close dialog immediately for better UX
+    setDialogState(null); 
 
     startTransition(async () => {
       try {
         await deactivateAsset(firestore, user.uid, user.displayName || "Usuário", assetToDeactivate.id);
         toast({ title: "Sucesso", description: "Item movido para a lixeira." });
       } catch (error: any) {
-        // The global error listener will catch permission errors.
-        // This catch block handles other potential issues.
         console.error("Error deactivating asset:", error);
         toast({ 
             variant: "destructive", 
@@ -280,6 +279,10 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             </Select>
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => setDialogState({ type: "import" })} className="w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-2" />
+              <span>Importar</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
@@ -325,7 +328,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
             />
       </div>
       
-      {/* Add/Edit Dialog */}
       <Dialog
         open={dialogState?.type === "add" || dialogState?.type === "edit"}
         onOpenChange={(open) => !open && setDialogState(null)}
@@ -348,7 +350,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={dialogState?.type === "delete"}
         onOpenChange={(open) => !open && setDialogState(null)}
@@ -371,7 +372,6 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Manage Categories Dialog */}
       <ManageCategoriesDialog
         open={dialogState?.type === 'manage-categories'}
         onOpenChange={(open) => !open && setDialogState(null)}
@@ -379,12 +379,21 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
         onCategoriesChange={handleCategoriesUpdate}
       />
 
-       {/* Manage Locations Dialog */}
       <ManageLocationsDialog
         open={dialogState?.type === 'manage-locations'}
         onOpenChange={(open) => !open && setDialogState(null)}
         locations={locations || []}
         onLocationsChange={handleLocationsUpdate}
+      />
+
+      <ImportAssetsDialog
+        open={dialogState?.type === 'import'}
+        onOpenChange={(open) => !open && setDialogState(null)}
+        onImportSuccess={(count) => {
+          toast({ title: "Importação Concluída", description: `${count} ${count === 1 ? 'item foi importado' : 'itens foram importados'} com sucesso.`});
+          setDialogState(null);
+          forceRefetch(); // Force a refetch of assets
+        }}
       />
     </>
   );
