@@ -137,12 +137,14 @@ export default function PropostaPage() {
                         Diferente de um SaaS, a opção de adquirir o código-fonte transforma o software em um ativo digital da sua empresa, garantindo liberdade total para futuras customizações.
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-primary/5 border-primary/20">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-3 text-lg"><TrendingUp className="text-primary"/>Retorno sobre Investimento</CardTitle>
+                        <CardTitle className="flex items-center gap-3 text-lg"><TrendingUp className="text-primary"/>Valor de Mercado Realista</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                        A centralização de dados e os relatórios visuais eliminam o retrabalho com planilhas, reduzem perdas e permitem decisões mais rápidas e inteligentes, gerando economia real.
+                        <p>Sistemas com este nível de complexidade (auditoria, relatórios, segurança) custam em média:</p>
+                        <p className="text-2xl font-bold text-foreground my-2">R$ 25.000 - R$ 40.000</p>
+                        <p>Seu investimento (Plano Plus) é uma oportunidade única, garantindo tecnologia de ponta por uma fração do custo.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -178,5 +180,3 @@ export default function PropostaPage() {
     </div>
   );
 }
-
-    
