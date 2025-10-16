@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Landmark, Loader2 } from 'lucide-react';
+import { Landmark, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { useState, useEffect } from 'react';
 import {
@@ -32,8 +32,10 @@ export default function AuthPage() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
 
-
   const [isPending, setIsPending] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (auth.currentUser) {
@@ -150,14 +152,24 @@ export default function AuthPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="login-password">Senha</Label>
-                                    <Input
-                                        id="login-password"
-                                        type="password"
-                                        required
-                                        value={loginPassword}
-                                        onChange={(e) => setLoginPassword(e.target.value)}
-                                        disabled={isPending}
-                                    />
+                                    <div className="relative">
+                                      <Input
+                                          id="login-password"
+                                          type={showLoginPassword ? 'text' : 'password'}
+                                          required
+                                          value={loginPassword}
+                                          onChange={(e) => setLoginPassword(e.target.value)}
+                                          disabled={isPending}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                        aria-label={showLoginPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                      >
+                                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                      </button>
+                                    </div>
                                 </div>
                                 <Button type="submit" className="w-full mt-2" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -194,25 +206,45 @@ export default function AuthPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="signup-password">Senha</Label>
-                                    <Input 
-                                        id="signup-password" 
-                                        type="password" 
-                                        required 
-                                        value={signupPassword}
-                                        onChange={(e) => setSignupPassword(e.target.value)}
-                                        disabled={isPending}
-                                    />
+                                    <div className="relative">
+                                      <Input 
+                                          id="signup-password" 
+                                          type={showSignupPassword ? 'text' : 'password'}
+                                          required 
+                                          value={signupPassword}
+                                          onChange={(e) => setSignupPassword(e.target.value)}
+                                          disabled={isPending}
+                                      />
+                                       <button
+                                        type="button"
+                                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                        aria-label={showSignupPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                      >
+                                        {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                      </button>
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
-                                    <Input 
-                                        id="signup-confirm-password" 
-                                        type="password" 
-                                        required 
-                                        value={signupConfirmPassword}
-                                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                                        disabled={isPending}
-                                    />
+                                    <div className="relative">
+                                      <Input 
+                                          id="signup-confirm-password" 
+                                          type={showConfirmPassword ? 'text' : 'password'}
+                                          required 
+                                          value={signupConfirmPassword}
+                                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                                          disabled={isPending}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                        aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                      >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                      </button>
+                                    </div>
                                 </div>
                                 <Button type="submit" className="w-full mt-2" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
