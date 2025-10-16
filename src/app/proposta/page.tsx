@@ -69,8 +69,8 @@ export default function PropostaPage() {
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight">Proposta de Desenvolvimento</h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">Uma solução sob medida para a gestão de patrimônio, transformando dados em decisões inteligentes.</p>
           <div className="flex justify-center mt-6">
-            <Badge variant="secondary" className="text-base font-normal py-2 px-4 border-dashed border-primary/50 bg-primary/10 text-primary-foreground">
-                <Star className="w-4 h-4 mr-2 text-primary" />O projeto já foi concluído e encontra-se pronto para apresentação e eventuais ajustes finais.
+            <Badge variant="secondary" className="text-base font-normal py-2 px-4 border-dashed border-primary/50 bg-primary/10 text-primary">
+                <Star className="w-4 h-4 mr-2" />O projeto já foi concluído e encontra-se pronto para apresentação e eventuais ajustes finais.
             </Badge>
           </div>
         </header>
@@ -235,5 +235,3 @@ export default function PropostaPage() {
     </div>
   );
 }
-
-    
