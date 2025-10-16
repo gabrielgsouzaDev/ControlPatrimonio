@@ -10,19 +10,20 @@ import { Separator } from "@/components/ui/separator";
 export default function PropostaPage() {
   return (
     <div className="bg-background text-foreground min-h-screen p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         
         <header className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight">Proposta de Desenvolvimento</h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">Solução sob medida para gestão de patrimônio, transformando dados em decisões inteligentes.</p>
           <div className="flex justify-center mt-6">
-            <Badge variant="secondary" className="text-base font-normal py-2 px-4 border-dashed border-primary/50 bg-primary/10 text-primary">
-                <Star className="w-4 h-4 mr-2" />O projeto já está concluído e pronto para apresentação.
+             <Badge variant="secondary" className="border-dashed border-primary/50 bg-primary/10 text-primary text-base font-normal py-2 px-4">
+                <Star className="w-4 h-4 mr-2" />
+                O projeto já está concluído e pronto para apresentação.
             </Badge>
           </div>
         </header>
         
-        <section className="space-y-8">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl font-headline">Plano Padrão</CardTitle>
@@ -30,8 +31,8 @@ export default function PropostaPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-2xl font-bold mb-4">R$ 1.000,00</p>
-                    <h4 className="font-semibold mb-2">Funcionalidades:</h4>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                    <h4 className="font-semibold mb-3">Funcionalidades:</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Sistema de autenticação</li>
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Tela de gestão de patrimônio (CRUD)</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Filtros e busca</li>
@@ -63,16 +64,18 @@ export default function PropostaPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-2xl font-bold mb-4">A partir de R$ 5.000,00</p>
-                    <h4 className="font-semibold mb-2">Funcionalidades Incluídas:</h4>
-                    <p className="text-sm text-muted-foreground mb-3">Todas as funcionalidades do Plano Padrão, mais:</p>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                    <h4 className="font-semibold mb-3">Funcionalidades Incluídas:</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Sistema de autenticação</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Tela de gestão de patrimônio (CRUD)</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Filtros e busca</li>
+                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Gestão de Categorias e Locais</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Painel de controle (dashboard)</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Gráficos e relatórios visuais</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Histórico detalhado de alterações</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Exportação para PDF e CSV</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Lixeira (recuperação de itens)</li>
                         <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Responsividade (Mobile e Tablet)</li>
-                        <li className="flex items-center gap-2"><Check className="text-primary w-4 h-4"/>Integrações e personalizações</li>
                     </ul>
                     <Separator className="my-4"/>
                     <h4 className="font-semibold mb-2">Formas de Pagamento:</h4>
@@ -175,7 +178,5 @@ export default function PropostaPage() {
     </div>
   );
 }
-
-    
 
     
