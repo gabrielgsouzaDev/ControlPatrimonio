@@ -220,7 +220,14 @@ export default function DashboardPage() {
     setAnalysisState({ isOpen: true, isLoading: true, result: null, error: null });
 
     try {
-        const { itemsByCategoryChart, itemsByCityChart, createdChart, updatedChart, deletedChart, ...analysisInput } = dashboardData;
+        const { 
+            itemsByCategoryChart, 
+            itemsByCityChart, 
+            createdChart, 
+            updatedChart, 
+            deletedChart, 
+            ...analysisInput 
+        } = dashboardData;
         const result = await analyzeInventory(analysisInput);
         setAnalysisState(prev => ({ ...prev, isLoading: false, result }));
     } catch (error) {
@@ -243,7 +250,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="pl-2">
               <ChartContainer config={{ value: { label: "Valor", color: "hsl(var(--chart-1))" } }} className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer>
                   <RechartsBarChart data={dashboardData.valueByCityChart} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
@@ -261,7 +268,7 @@ export default function DashboardPage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Quantidade de Itens por Categoria</CardTitle></CardHeader>
             <CardContent className="pl-2">
               <ChartContainer config={{ count: { label: "Quantidade" } }} className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer>
                   <RechartsBarChart data={dashboardData.itemsByCategoryChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -279,7 +286,7 @@ export default function DashboardPage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart /> Quantidade de Itens por Cidade</CardTitle></CardHeader>
             <CardContent className="pl-2">
               <ChartContainer config={{ count: { label: "Quantidade" } }} className="h-[350px] w-full">
-                 <ResponsiveContainer width="100%" height="100%">
+                 <ResponsiveContainer>
                     <RechartsBarChart data={dashboardData.itemsByCityChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                       <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -296,12 +303,14 @@ export default function DashboardPage() {
           <Card className="col-span-1 xl:col-span-4">
             <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Criados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
             <CardContent><ChartContainer config={{ value: { label: "Criados" } }} className="h-[350px] w-full">
-               <RechartsAreaChart data={dashboardData.createdChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-              </RechartsAreaChart>
+              <ResponsiveContainer>
+                <RechartsAreaChart data={dashboardData.createdChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                  <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+                </RechartsAreaChart>
+              </ResponsiveContainer>
             </ChartContainer></CardContent>
           </Card>
         );
@@ -310,12 +319,14 @@ export default function DashboardPage() {
           <Card className="col-span-1 xl:col-span-4">
             <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Atualizados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
             <CardContent><ChartContainer config={{ value: { label: "Atualizados" } }} className="h-[350px] w-full">
-               <RechartsAreaChart data={dashboardData.updatedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-              </RechartsAreaChart>
+              <ResponsiveContainer>
+                <RechartsAreaChart data={dashboardData.updatedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                  <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+                </RechartsAreaChart>
+              </ResponsiveContainer>
             </ChartContainer></CardContent>
           </Card>
         );
@@ -324,12 +335,14 @@ export default function DashboardPage() {
           <Card className="col-span-1 xl:col-span-4">
             <CardHeader><CardTitle className="flex items-center gap-2"><AreaChart /> Itens Desativados (Acumulado nos últimos 30 dias)</CardTitle></CardHeader>
             <CardContent><ChartContainer config={{ value: { label: "Desativados" } }} className="h-[350px] w-full">
-               <RechartsAreaChart data={dashboardData.deletedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-                <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-              </RechartsAreaChart>
+              <ResponsiveContainer>
+                <RechartsAreaChart data={dashboardData.deletedChart} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltipContent indicator="dot" />} />
+                  <Area type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+                </RechartsAreaChart>
+              </ResponsiveContainer>
             </ChartContainer></CardContent>
           </Card>
         );
@@ -343,7 +356,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="pl-2">
               <ChartContainer config={{ value: { label: "Valor", color: "hsl(var(--chart-1))" } }} className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer>
                   <RechartsBarChart data={dashboardData.valueByCityChart} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${Number(value) / 1000}k`} />
@@ -470,7 +483,7 @@ export default function DashboardPage() {
                       [entry.name]: { label: entry.name, color: `hsl(var(--chart-${index + 1}))` }
                   }), {})
               }} className="h-[350px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer>
                       <RechartsPieChart>
                       <Tooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                       <Pie data={dashboardData.valueByCategoryChart} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} labelLine={false} label={({
