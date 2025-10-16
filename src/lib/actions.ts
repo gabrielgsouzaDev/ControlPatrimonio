@@ -77,8 +77,8 @@ export async function exportDashboardToCsv(
 
 const assetImportSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  codeId: z.string().min(1, 'Código ID é obrigatório'),
-  categoryId: z.string().min(1, 'Categoria é obrigatória'),
+  codeid: z.string().min(1, 'Código ID é obrigatório'),
+  categoryid: z.string().min(1, 'Categoria é obrigatória'),
   city: z.string().min(1, 'Cidade/Local é obrigatório'),
   value: z.coerce.number({invalid_type_error: "Valor deve ser um número"}).positive('Valor deve ser um número positivo'),
   observation: z.string().optional().default(''),
@@ -91,7 +91,11 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
     throw new Error('Usuário não autenticado.');
   }
 
-  const parseResult = Papa.parse(csvContent, { header: true, skipEmptyLines: true });
+  const parseResult = Papa.parse(csvContent, { 
+    header: true, 
+    skipEmptyLines: true,
+    transformHeader: header => header.trim().toLowerCase(), // Normalize headers
+  });
   
   if (parseResult.errors.length > 0) {
       throw new Error(`Erro ao analisar CSV: ${parseResult.errors[0].message}`);
@@ -105,58 +109,59 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   const locationsSnapshot = await firestore.collection('locations').get();
   const locationMap = new Map(locationsSnapshot.docs.map(doc => [doc.data().name.trim().toLowerCase(), doc.id]));
   
-  const assetsToCreate: any[] = [];
+  const assetsToCreate: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'status'>[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
-    // Normalize keys (headers) and trim values
-    const normalizedRow: {[key: string]: string} = {};
-    for (const key in row) {
-        if (Object.prototype.hasOwnProperty.call(row, key)) {
-            normalizedRow[key.trim().toLowerCase()] = row[key]?.trim() || '';
-        }
-    }
-    
-    const categoryName = normalizedRow.categoryid;
-    const cityName = normalizedRow.city;
+    const categoryName = row.categoryid || row.categoria;
+    const cityName = row.city || row.cidade;
 
-    const categoryId = categoryName ? categoryMap.get(categoryName.toLowerCase()) : undefined;
-    const cityId = cityName ? locationMap.get(cityName.toLowerCase()) : undefined;
+    const categoryId = categoryName ? categoryMap.get(categoryName.trim().toLowerCase()) : undefined;
+    const cityId = cityName ? locationMap.get(cityName.trim().toLowerCase()) : undefined;
 
     const rowForValidation = {
-      name: normalizedRow.name,
-      codeId: normalizedRow.codeid,
-      value: normalizedRow.value,
-      observation: normalizedRow.observation,
-      categoryId: categoryId, 
+      name: row.name || row.nome,
+      codeid: row.codeid,
+      value: row.value || row.valor,
+      observation: row.observation || row.observacao,
+      categoryid: categoryId, 
       city: cityId,
     };
     
     const validation = assetImportSchema.safeParse(rowForValidation);
     
     let rowIsValid = true;
+    const currentLine = i + 2;
 
-    if (!categoryId) {
-      errors.push(`Linha ${i + 2}: Categoria '${categoryName || ""}' não encontrada.`);
+    if (!categoryId && categoryName) {
+      errors.push(`Linha ${currentLine}: Categoria '${categoryName}' não encontrada.`);
       rowIsValid = false;
     }
-    if (!cityId) {
-      errors.push(`Linha ${i + 2}: Local '${cityName || ""}' não encontrado.`);
+    if (!cityId && cityName) {
+      errors.push(`Linha ${currentLine}: Local '${cityName}' não encontrado.`);
       rowIsValid = false;
     }
 
     if (validation.success && rowIsValid) {
-      assetsToCreate.push(validation.data);
+      // Re-map validated data to match the addAssetsInBatch expectation
+      assetsToCreate.push({
+          name: validation.data.name,
+          codeId: validation.data.codeid,
+          categoryId: validation.data.categoryid,
+          city: validation.data.city,
+          value: validation.data.value,
+          observation: validation.data.observation
+      });
     } else if (!validation.success) {
-        const errorMessages = validation.error.errors.map(e => `Linha ${i + 2}: ${e.message} no campo '${e.path[0]}'.`).join(' ');
+        const errorMessages = validation.error.errors.map(e => `Linha ${currentLine}: ${e.message} no campo '${e.path[0]}'.`).join(' ');
         errors.push(errorMessages);
     }
   }
 
   if (assetsToCreate.length > 0) {
-      await addAssetsInBatch(firestore, userId, userDisplayName, assetsToCreate);
+      await addAssetsInBatch(firestore, userId, userDisplayName, assetsToCreate as AssetFormValues[]);
   }
 
   return {
