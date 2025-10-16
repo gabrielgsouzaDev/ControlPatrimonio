@@ -111,13 +111,15 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
-    // Normalize keys and values
+    // Normalize keys (headers) and trim values
     const normalizedRow: {[key: string]: string} = {};
     for (const key in row) {
-        normalizedRow[key.trim()] = row[key]?.trim();
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+            normalizedRow[key.trim().toLowerCase()] = row[key]?.trim() || '';
+        }
     }
     
-    const categoryName = normalizedRow.categoryId;
+    const categoryName = normalizedRow.categoryid;
     const cityName = normalizedRow.city;
 
     const categoryId = categoryName ? categoryMap.get(categoryName.toLowerCase()) : undefined;
@@ -125,7 +127,7 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
 
     const rowForValidation = {
       name: normalizedRow.name,
-      codeId: normalizedRow.codeId,
+      codeId: normalizedRow.codeid,
       value: normalizedRow.value,
       observation: normalizedRow.observation,
       categoryId: categoryId, 

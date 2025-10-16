@@ -62,20 +62,16 @@ export function ImportAssetsDialog({ open, onOpenChange, onImportSuccess }: Impo
     }
     
     startTransition(async () => {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const csvContent = event.target?.result as string;
-            try {
-                const importResult = await importAssetsFromCsv(csvContent, user.uid, user.displayName || 'Usuário');
-                setResult(importResult);
-                if (importResult.success > 0) {
-                    onImportSuccess(importResult.success);
-                }
-            } catch (error: any) {
-                toast({ variant: "destructive", title: "Erro na Importação", description: error.message || "Não foi possível processar o arquivo." });
-            }
-        };
-        reader.readAsText(file, 'UTF-8');
+      try {
+        const fileContent = await file.text();
+        const importResult = await importAssetsFromCsv(fileContent, user.uid, user.displayName || 'Usuário');
+        setResult(importResult);
+        if (importResult.success > 0) {
+            onImportSuccess(importResult.success);
+        }
+      } catch (error: any) {
+          toast({ variant: "destructive", title: "Erro na Importação", description: error.message || "Não foi possível processar o arquivo." });
+      }
     });
   };
 
