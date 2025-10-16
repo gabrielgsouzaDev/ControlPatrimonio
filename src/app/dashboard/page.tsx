@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaChart, BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText, BrainCircuit } from 'lucide-react';
+import { AreaChart, BarChart, PieChart, Building2, Landmark, DollarSign, Loader2, PlusSquare, PenSquare, MinusSquare, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -29,30 +29,15 @@ import { exportDashboardToCsv } from '@/lib/actions';
 import { exportDashboardToPdf } from '@/lib/pdf-export';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { analyzeInventory } from '@/ai/flows/analyze-inventory-flow';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 type ActiveChart = 'totalAssets' | 'totalValue' | 'totalCities' | 'created' | 'updated' | 'deleted';
-
-type AnalysisState = {
-  isOpen: boolean;
-  isLoading: boolean;
-  result: string | null;
-  error: string | null;
-};
 
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const [isExporting, startExportTransition] = useTransition();
   const [activeChart, setActiveChart] = useState<ActiveChart>('totalValue');
-  const [analysisState, setAnalysisState] = useState<AnalysisState>({
-    isOpen: false,
-    isLoading: false,
-    result: null,
-    error: null,
-  });
   const { toast } = useToast();
 
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
@@ -212,31 +197,6 @@ export default function DashboardPage() {
     });
   };
 
-  const handleAnalyze = async () => {
-    if (!dashboardData) {
-        toast({ variant: "destructive", title: "Análise Falhou", description: "Os dados do dashboard ainda não estão disponíveis."});
-        return;
-    }
-    setAnalysisState({ isOpen: true, isLoading: true, result: null, error: null });
-
-    try {
-        const { 
-            itemsByCategoryChart, 
-            itemsByCityChart, 
-            createdChart, 
-            updatedChart, 
-            deletedChart, 
-            ...analysisInput 
-        } = dashboardData;
-        const result = await analyzeInventory(analysisInput);
-        setAnalysisState(prev => ({ ...prev, isLoading: false, result }));
-    } catch (error) {
-        console.error("AI analysis failed:", error);
-        setAnalysisState(prev => ({ ...prev, isLoading: false, error: "A análise de IA falhou. Tente novamente." }));
-        toast({ variant: "destructive", title: "Erro na Análise", description: "Não foi possível gerar a análise de IA." });
-    }
-  };
-
   const renderActiveChart = () => {
     if (!dashboardData) return null;
     switch (activeChart) {
@@ -371,10 +331,6 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h2 className="text-3xl font-headline tracking-tight">Dashboard</h2>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={handleAnalyze} disabled={analysisState.isLoading} className="w-full sm:w-auto">
-                {analysisState.isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-                Analisar com IA
-            </Button>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting} className="w-full sm:w-auto">
@@ -489,31 +445,8 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-      <Dialog open={analysisState.isOpen} onOpenChange={(isOpen) => setAnalysisState(prev => ({...prev, isOpen}))}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Análise do Inventário com IA</DialogTitle>
-            <DialogDescription>
-              Abaixo estão os insights gerados pela inteligência artificial com base nos dados atuais do seu patrimônio.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 space-y-4">
-            {analysisState.isLoading && (
-                <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            )}
-            {analysisState.error && (
-                <p className="text-sm text-destructive">{analysisState.error}</p>
-            )}
-            {analysisState.result && (
-                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-                  {analysisState.result}
-                </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
+
+    
