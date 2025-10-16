@@ -24,7 +24,7 @@ export function ImportAssetsDialog({ open, onOpenChange, onImportSuccess }: Impo
   const { user } = useUser();
 
   const handleDownloadTemplate = () => {
-    const headers = "name,codeId,categoryId,city,value,observation";
+    const headers = "Nome,Codigo ID,Categoria,Cidade/Local,Valor,Observacao";
     const example = "Notebook Dell,NTB-001,Eletrônicos,São Paulo,4500.50,Comprado em 2023";
     const csvContent = `${headers}\n${example}`;
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });

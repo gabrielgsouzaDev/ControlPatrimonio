@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import type { Asset, Category, HistoryLog, Location } from './types';
+import type { Asset, AssetFormValues, Category, HistoryLog, Location } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { initializeFirebase } from '@/firebase/server';
@@ -14,10 +14,9 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
     return '';
   }
 
-  const headers = ['ID', 'Nome', 'Código ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observação', 'Status'];
+  const headers = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao', 'Status'];
   const rows = assets.map(asset => 
     [
-      asset.id,
       `"${asset.name.replace(/"/g, '""')}"`,
       asset.codeId,
       asset.category || "N/A",
@@ -77,8 +76,8 @@ export async function exportDashboardToCsv(
 
 const assetImportSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  codeid: z.string().min(1, 'Código ID é obrigatório'),
-  categoryid: z.string().min(1, 'Categoria é obrigatória'),
+  codeId: z.string().min(1, 'Codigo ID é obrigatório'),
+  categoryId: z.string().min(1, 'Categoria é obrigatória'),
   city: z.string().min(1, 'Cidade/Local é obrigatório'),
   value: z.coerce.number({invalid_type_error: "Valor deve ser um número"}).positive('Valor deve ser um número positivo'),
   observation: z.string().optional().default(''),
@@ -94,7 +93,7 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   const parseResult = Papa.parse(csvContent, { 
     header: true, 
     skipEmptyLines: true,
-    transformHeader: header => header.trim().toLowerCase(), // Normalize headers
+    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, ''), // Normalize headers
   });
   
   if (parseResult.errors.length > 0) {
@@ -115,18 +114,24 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
-    const categoryName = row.categoryid || row.categoria;
-    const cityName = row.city || row.cidade;
+    // Support both Portuguese and old English headers
+    const categoryName = row.categoria || row.categoryid;
+    const cityName = row['cidade/local'] || row.city;
+    const codeId = row['codigoid'] || row.codeid;
+    const name = row.nome || row.name;
+    const value = row.valor || row.value;
+    const observation = row.observacao || row.observation;
+
 
     const categoryId = categoryName ? categoryMap.get(categoryName.trim().toLowerCase()) : undefined;
     const cityId = cityName ? locationMap.get(cityName.trim().toLowerCase()) : undefined;
 
     const rowForValidation = {
-      name: row.name || row.nome,
-      codeid: row.codeid,
-      value: row.value || row.valor,
-      observation: row.observation || row.observacao,
-      categoryid: categoryId, 
+      name,
+      codeId,
+      value,
+      observation,
+      categoryId: categoryId, 
       city: cityId,
     };
     
@@ -145,11 +150,10 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
     }
 
     if (validation.success && rowIsValid) {
-      // Re-map validated data to match the addAssetsInBatch expectation
       assetsToCreate.push({
           name: validation.data.name,
-          codeId: validation.data.codeid,
-          categoryId: validation.data.categoryid,
+          codeId: validation.data.codeId,
+          categoryId: validation.data.categoryId,
           city: validation.data.city,
           value: validation.data.value,
           observation: validation.data.observation

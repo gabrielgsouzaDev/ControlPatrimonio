@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,24 +14,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Asset, Category, Location } from "@/lib/types";
+import type { Asset, Category, Location, AssetFormValues } from "@/lib/types";
+import { assetFormSchema } from "@/lib/types";
 import { addAsset, updateAsset } from "@/lib/mutations";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFirestore, useUser } from "@/firebase";
-
-const assetFormSchema = z.object({
-  name: z.string().min(1, { message: "O nome é obrigatório." }),
-  codeId: z.string().min(1, { message: "O código ID é obrigatório." }),
-  categoryId: z.string().min(1, { message: "A categoria é obrigatória." }),
-  city: z.string().min(1, { message: "A cidade/local é obrigatória." }),
-  value: z.coerce.number().positive({ message: "O valor deve ser um número positivo." }),
-  observation: z.string().optional(),
-});
-
-export type AssetFormValues = z.infer<typeof assetFormSchema>;
 
 interface AddEditAssetFormProps {
   asset?: Asset;
