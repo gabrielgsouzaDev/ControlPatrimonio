@@ -16,6 +16,8 @@ interface ImportAssetsDialogProps {
   onImportSuccess: (count: number) => void;
 }
 
+const CSV_HEADERS = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao'];
+
 export function ImportAssetsDialog({ open, onOpenChange, onImportSuccess }: ImportAssetsDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
@@ -24,9 +26,8 @@ export function ImportAssetsDialog({ open, onOpenChange, onImportSuccess }: Impo
   const { user } = useUser();
 
   const handleDownloadTemplate = () => {
-    const headers = "Nome,Codigo ID,Categoria,Cidade/Local,Valor,Observacao";
     const example = "Notebook Dell,NTB-001,Eletrônicos,São Paulo,4500.50,Comprado em 2023";
-    const csvContent = `${headers}\n${example}`;
+    const csvContent = `${CSV_HEADERS.join(',')}\n${example}`;
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

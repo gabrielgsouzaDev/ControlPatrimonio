@@ -9,12 +9,13 @@ import { initializeFirebase } from '@/firebase/server';
 import Papa from 'papaparse';
 import { Timestamp } from 'firebase-admin/firestore';
 
+const CSV_HEADERS = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao'];
+
 export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   if (!assets.length) {
     return '';
   }
 
-  const headers = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao'];
   const rows = assets.map(asset => 
     [
       `"${asset.name.replace(/"/g, '""')}"`,
@@ -26,7 +27,7 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
     ].join(',')
   );
 
-  return [headers.join(','), ...rows].join('\n');
+  return [CSV_HEADERS.join(','), ...rows].join('\n');
 }
 
 export async function exportHistoryToCsv(history: HistoryLog[]): Promise<string> {
@@ -83,10 +84,6 @@ const assetImportSchema = z.object({
 });
 
 
-/**
- * Adds multiple assets and their history logs in a single batch.
- * This is a server-side function.
- */
 export async function addAssetsInBatch(
     firestore: FirebaseFirestore.Firestore,
     userId: string,
@@ -124,6 +121,7 @@ export async function addAssetsInBatch(
     return batch.commit();
 }
 
+
 export async function importAssetsFromCsv(csvContent: string, userId: string, userDisplayName: string) {
   const { firestore } = await initializeFirebase();
   
@@ -134,11 +132,9 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   const parseResult = Papa.parse(csvContent, { 
     header: true, 
     skipEmptyLines: true,
-    delimiter: (input) => {
-      // Auto-detect delimiter
-      return input.includes(';') ? ';' : ',';
-    },
-    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, ''),
+    trimHeaders: true, // Remove espaços extras dos cabeçalhos
+    dynamicTyping: true, // Ajuda na detecção automática de tipos e delimitadores
+    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, '').replace('/', ''), // Normaliza os cabeçalhos
   });
   
   if (parseResult.errors.length > 0) {
@@ -153,33 +149,34 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   const locationsSnapshot = await firestore.collection('locations').get();
   const locationMap = new Map(locationsSnapshot.docs.map(doc => [doc.data().name.trim().toLowerCase(), doc.id]));
   
-  const assetsToCreate: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'status'>[] = [];
+  const assetsToCreate: AssetFormValues[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
-    // Normalize keys of the row object
-    const normalizedRow = Object.keys(row).reduce((acc, key) => {
-      acc[key.trim().toLowerCase().replace(/\s+/g, '')] = row[key];
-      return acc;
-    }, {} as Record<string, string>);
+    const currentLine = i + 2;
 
+    const normalizedRow: Record<string, any> = {};
+    for (const key in row) {
+      const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '').replace('/', '');
+      normalizedRow[normalizedKey] = row[key];
+    }
+    
     const categoryName = normalizedRow.categoria;
-    const cityName = normalizedRow['cidade/local'];
+    const cityName = normalizedRow.cidadelocal;
     const codeId = normalizedRow.codigoid;
     const name = normalizedRow.nome;
     const value = normalizedRow.valor;
     const observation = normalizedRow.observacao;
 
-    const categoryId = categoryName ? categoryMap.get(categoryName.trim().toLowerCase()) : undefined;
-    const cityId = cityName ? locationMap.get(cityName.trim().toLowerCase()) : undefined;
+    const categoryId = categoryName ? categoryMap.get(String(categoryName).trim().toLowerCase()) : undefined;
+    const cityId = cityName ? locationMap.get(String(cityName).trim().toLowerCase()) : undefined;
 
     const rowForValidation = {
-      name,
-      codeId,
-      value,
-      observation,
+      name: name,
+      codeId: codeId,
+      value: value,
+      observation: observation,
       categoryId: categoryId, 
       city: cityId,
     };
@@ -187,8 +184,6 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
     const validation = assetImportSchema.safeParse(rowForValidation);
     
     let rowIsValid = true;
-    const currentLine = i + 2;
-
     if (!categoryId && categoryName) {
       errors.push(`Linha ${currentLine}: Categoria '${categoryName}' não encontrada.`);
       rowIsValid = false;
@@ -199,14 +194,7 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
     }
 
     if (validation.success && rowIsValid) {
-      assetsToCreate.push({
-          name: validation.data.name,
-          codeId: validation.data.codeId,
-          categoryId: validation.data.categoryId,
-          city: validation.data.city,
-          value: validation.data.value,
-          observation: validation.data.observation
-      });
+      assetsToCreate.push(validation.data);
     } else if (!validation.success) {
         const errorMessages = validation.error.errors.map(e => `Linha ${currentLine}: ${e.message} no campo '${e.path[0]}'.`).join(' ');
         errors.push(errorMessages);
@@ -214,7 +202,7 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   }
 
   if (assetsToCreate.length > 0) {
-      await addAssetsInBatch(firestore, userId, userDisplayName, assetsToCreate as AssetFormValues[]);
+      await addAssetsInBatch(firestore, userId, userDisplayName, assetsToCreate);
   }
 
   return {
