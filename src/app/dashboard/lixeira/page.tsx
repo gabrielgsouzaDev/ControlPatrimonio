@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { reactivateAssetsInBatch } from '@/lib/actions';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -40,9 +42,11 @@ export default function LixeiraPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [assetToReactivate, setAssetToReactivate] = useState<Asset | null>(null);
+  const [assetsToReactivate, setAssetsToReactivate] = useState<Asset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedAssets, setSelectedAssets] = useState<Record<string, boolean>>({});
 
   const assetsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'assets') : null),
@@ -104,6 +108,8 @@ export default function LixeiraPage() {
 
   }, [assets, categories, searchTerm, categoryFilter, sortDirection]);
   
+  const selectedAssetIds = useMemo(() => Object.keys(selectedAssets).filter(id => selectedAssets[id]), [selectedAssets]);
+
   const handleReactivate = () => {
     if (!assetToReactivate || !firestore || !user) return;
 
@@ -137,6 +143,22 @@ export default function LixeiraPage() {
     });
   };
 
+  const handleReactivateMany = () => {
+    if (!user) return;
+    
+    startTransition(async () => {
+      try {
+        const count = await reactivateAssetsInBatch(selectedAssetIds, user.uid, user.displayName || 'Usuário');
+        toast({ title: "Sucesso", description: `${count} ${count === 1 ? 'item foi reativado' : 'itens foram reativados'}.` });
+        setSelectedAssets({});
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "Erro ao Reativar", description: "Não foi possível reativar os itens selecionados."});
+      } finally {
+        setAssetsToReactivate([]);
+      }
+    });
+  }
+
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
@@ -153,6 +175,30 @@ export default function LixeiraPage() {
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'dd/MM/yyyy HH:mm');
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    const newSelectedAssets: Record<string, boolean> = {};
+    if (checked) {
+      processedAssets.forEach(asset => {
+        newSelectedAssets[asset.id] = true;
+      });
+    }
+    setSelectedAssets(newSelectedAssets);
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedAssets(prev => {
+      const newSelected = { ...prev };
+      if (checked) {
+        newSelected[id] = true;
+      } else {
+        delete newSelected[id];
+      }
+      return newSelected;
+    });
+  };
+
+  const isAllSelected = processedAssets.length > 0 && processedAssets.every(asset => selectedAssets[asset.id]);
 
   if (isLoadingAssets || isLoadingCategories) {
     return (
@@ -196,6 +242,14 @@ export default function LixeiraPage() {
                 ))}
               </SelectContent>
             </Select>
+            {selectedAssetIds.length > 0 && (
+              <div className="flex justify-end w-full sm:w-auto">
+                <Button onClick={() => setAssetsToReactivate(processedAssets.filter(a => selectedAssetIds.includes(a.id)))} disabled={isPending}>
+                  <History className="mr-2 h-4 w-4" />
+                  Reativar ({selectedAssetIds.length})
+                </Button>
+              </div>
+            )}
         </div>
 
 
@@ -204,6 +258,14 @@ export default function LixeiraPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
+                    <TableHead padding="checkbox" className="w-[60px] sticky left-0 bg-card z-20">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                        aria-label="Selecionar todos"
+                        className="translate-y-[2px] ml-4"
+                      />
+                    </TableHead>
                     <TableHead className="min-w-[150px]">Nome</TableHead>
                     <TableHead className="min-w-[120px]">Código ID</TableHead>
                     <TableHead className="min-w-[150px]">Categoria</TableHead>
@@ -218,20 +280,28 @@ export default function LixeiraPage() {
                 <TableBody>
                     {processedAssets.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
+                        <TableCell colSpan={6} className="h-24 text-center">
                           {searchTerm || categoryFilter !== 'all' ? 'Nenhum item encontrado.' : 'A lixeira está vazia.'}
                         </TableCell>
                     </TableRow>
                     ) : (
                     processedAssets.map(asset => (
-                        <TableRow key={asset.id}>
+                        <TableRow key={asset.id} data-state={selectedAssets[asset.id] ? 'selected' : undefined}>
+                        <TableCell className="sticky left-0 bg-card data-[state=selected]:bg-muted z-20">
+                           <Checkbox
+                            checked={selectedAssets[asset.id] || false}
+                            onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
+                            aria-label={`Selecionar ${asset.name}`}
+                            className="translate-y-[2px] ml-4"
+                          />
+                        </TableCell>
                         <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                         <TableCell>
                             <Badge variant="outline">{asset.codeId}</Badge>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{asset.categoryName}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(asset.updatedAt)}</TableCell>
-                        <TableCell className="text-right sticky right-0 bg-card z-10">
+                        <TableCell className="text-right sticky right-0 bg-card data-[state=selected]:bg-muted z-10">
                             <Button
                             variant="outline"
                             size="sm"
@@ -266,6 +336,27 @@ export default function LixeiraPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleReactivate} disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={assetsToReactivate.length > 0}
+        onOpenChange={(open) => !open && setAssetsToReactivate([])}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reativar Itens?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá restaurar os <span className="font-semibold">{assetsToReactivate.length}</span> itens selecionados para a lista de patrimônios ativos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReactivateMany} disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reativar
             </AlertDialogAction>

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin, Upload } from "lucide-react";
+import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin, Upload, Trash2 } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deactivateAsset } from "@/lib/mutations";
-import { exportAssetsToCsv } from "@/lib/actions";
+import { exportAssetsToCsv, deactivateAssetsInBatch } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { ManageCategoriesDialog } from "./manage-categories-dialog";
 import { ManageLocationsDialog } from "./manage-locations-dialog";
@@ -47,6 +47,7 @@ type DialogState =
   | { type: "add" }
   | { type: "edit"; asset: Asset }
   | { type: "delete"; asset: Asset }
+  | { type: "delete-many"; assets: Asset[] }
   | { type: "manage-categories" }
   | { type: "manage-locations" }
   | { type: "import" }
@@ -63,6 +64,7 @@ export default function DashboardClient() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+  const [selectedAssets, setSelectedAssets] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -156,6 +158,8 @@ export default function DashboardClient() {
 
   }, [assets, categories, locations, cityFilter, categoryFilter, searchTerm, sortConfig]);
 
+  const selectedAssetIds = useMemo(() => Object.keys(selectedAssets).filter(id => selectedAssets[id]), [selectedAssets]);
+
   const handleFormSubmit = () => {
     setDialogState(null);
   };
@@ -188,6 +192,22 @@ export default function DashboardClient() {
       }
     });
   };
+
+  const handleDeleteMany = () => {
+    if (!user) return;
+    
+    startTransition(async () => {
+      try {
+        const count = await deactivateAssetsInBatch(selectedAssetIds, user.uid, user.displayName || 'Usuário');
+        toast({ title: "Sucesso", description: `${count} ${count === 1 ? 'item movido' : 'itens movidos'} para a lixeira.` });
+        setSelectedAssets({});
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "Erro ao Desativar", description: "Não foi possível mover os itens selecionados."});
+      } finally {
+        setDialogState(null);
+      }
+    });
+  }
 
   const handleExportCsv = () => {
     startTransition(async () => {
@@ -279,36 +299,50 @@ export default function DashboardClient() {
             </Select>
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => setDialogState({ type: "import" })} className="w-full sm:w-auto">
-              <Upload className="h-4 w-4 mr-2" />
-              <span>Importar</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                 <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
-                  <Download className="h-4 w-4 mr-2" />
-                  <span>Exportar</span>
+            {selectedAssetIds.length > 0 ? (
+                 <Button
+                    variant="destructive"
+                    onClick={() => setDialogState({ type: 'delete-many', assets: [] })}
+                    className="w-full sm:w-auto"
+                    disabled={isPending}
+                >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Desativar ({selectedAssetIds.length})
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCsv}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  <span>Exportar para CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPdf}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  <span>Exportar para PDF</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="flex w-full sm:w-auto gap-2">
-                <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais" className="flex-1 sm:flex-none">
-                    <MapPin className="h-4 w-4" />
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setDialogState({ type: "import" })} className="w-full sm:w-auto">
+                  <Upload className="h-4 w-4 mr-2" />
+                  <span>Importar</span>
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias" className="flex-1 sm:flex-none">
-                    <Settings className="h-4 w-4" />
-                </Button>
-            </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
+                      <Download className="h-4 w-4 mr-2" />
+                      <span>Exportar</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleExportCsv}>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      <span>Exportar para CSV</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPdf}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>Exportar para PDF</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="flex w-full sm:w-auto gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais" className="flex-1 sm:flex-none">
+                        <MapPin className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias" className="flex-1 sm:flex-none">
+                        <Settings className="h-4 w-4" />
+                    </Button>
+                </div>
+              </>
+            )}
             <div className="w-full sm:w-auto sm:ml-auto">
                 <Button onClick={() => setDialogState({ type: "add" })} className="w-full sm:w-auto">
                     <PlusCircle className="h-4 w-4 mr-2" />
@@ -325,6 +359,8 @@ export default function DashboardClient() {
             onDelete={(asset) => setDialogState({ type: "delete", asset })}
             sortConfig={sortConfig}
             requestSort={requestSort}
+            selectedAssets={selectedAssets}
+            setSelectedAssets={setSelectedAssets}
             />
       </div>
       
@@ -365,6 +401,27 @@ export default function DashboardClient() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={dialogState?.type === "delete-many"}
+        onOpenChange={(open) => !open && setDialogState(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação moverá os <span className="font-semibold">{selectedAssetIds.length}</span> itens selecionados para a lixeira. Eles poderão ser reativados posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteMany} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Desativar
             </AlertDialogAction>

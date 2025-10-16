@@ -11,7 +11,7 @@ import {
     Timestamp,
     updateDoc,
 } from "firebase/firestore";
-import type { AssetFormValues } from "@/components/dashboard/add-edit-asset-form";
+import type { AssetFormValues } from "./types";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import type { Asset } from './types';
@@ -76,47 +76,6 @@ export function addAsset(
             })
         );
     });
-}
-
-/**
- * Adds multiple assets and their history logs in a single batch.
- * This is a server-side function.
- */
-export async function addAssetsInBatch(
-    firestore: any, // Using `any` to be compatible with both client and admin SDK
-    userId: string,
-    userDisplayName: string,
-    assetsData: AssetFormValues[]
-) {
-    const batch = firestore.batch();
-    const now = Timestamp.now(); // Use admin SDK Timestamp
-
-    assetsData.forEach((assetData) => {
-        const assetRef = firestore.collection('assets').doc();
-        const assetPayload = {
-            ...assetData,
-            userId,
-            createdAt: now,
-            updatedAt: now,
-            status: 'ativo' as const,
-        };
-        batch.set(assetRef, assetPayload);
-
-        const historyRef = firestore.collection('history').doc();
-        const historyLog = {
-            assetId: assetRef.id,
-            assetName: assetData.name,
-            codeId: assetData.codeId,
-            action: "Criado" as const,
-            details: "Item importado via CSV.",
-            userId: userId,
-            userDisplayName: userDisplayName,
-            timestamp: now,
-        };
-        batch.set(historyRef, historyLog);
-    });
-
-    return batch.commit();
 }
 
 

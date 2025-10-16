@@ -2,19 +2,19 @@
 'use server';
 
 import { z } from 'zod';
-import type { Asset, AssetFormValues, Category, HistoryLog, Location } from './types';
+import type { Asset, AssetFormValues, HistoryLog } from './types';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { initializeFirebase } from '@/firebase/server';
-import { addAssetsInBatch } from './mutations';
 import Papa from 'papaparse';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
   if (!assets.length) {
     return '';
   }
 
-  const headers = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao', 'Status'];
+  const headers = ['Nome', 'Codigo ID', 'Categoria', 'Cidade/Local', 'Valor', 'Observacao'];
   const rows = assets.map(asset => 
     [
       `"${asset.name.replace(/"/g, '""')}"`,
@@ -23,7 +23,6 @@ export async function exportAssetsToCsv(assets: Asset[]): Promise<string> {
       asset.city,
       asset.value,
       `"${(asset.observation || '').replace(/"/g, '""')}"`,
-      asset.status,
     ].join(',')
   );
 
@@ -83,6 +82,48 @@ const assetImportSchema = z.object({
   observation: z.string().optional().default(''),
 });
 
+
+/**
+ * Adds multiple assets and their history logs in a single batch.
+ * This is a server-side function.
+ */
+export async function addAssetsInBatch(
+    firestore: FirebaseFirestore.Firestore,
+    userId: string,
+    userDisplayName: string,
+    assetsData: AssetFormValues[]
+) {
+    const batch = firestore.batch();
+    const now = Timestamp.now(); 
+
+    assetsData.forEach((assetData) => {
+        const assetRef = firestore.collection('assets').doc();
+        const assetPayload = {
+            ...assetData,
+            userId,
+            createdAt: now,
+            updatedAt: now,
+            status: 'ativo' as const,
+        };
+        batch.set(assetRef, assetPayload);
+
+        const historyRef = firestore.collection('history').doc();
+        const historyLog = {
+            assetId: assetRef.id,
+            assetName: assetData.name,
+            codeId: assetData.codeId,
+            action: "Criado" as const,
+            details: "Item importado via CSV.",
+            userId: userId,
+            userDisplayName: userDisplayName,
+            timestamp: now,
+        };
+        batch.set(historyRef, historyLog);
+    });
+
+    return batch.commit();
+}
+
 export async function importAssetsFromCsv(csvContent: string, userId: string, userDisplayName: string) {
   const { firestore } = await initializeFirebase();
   
@@ -93,7 +134,11 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   const parseResult = Papa.parse(csvContent, { 
     header: true, 
     skipEmptyLines: true,
-    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, ''), // Normalize headers
+    delimiter: (input) => {
+      // Auto-detect delimiter
+      return input.includes(';') ? ';' : ',';
+    },
+    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, ''),
   });
   
   if (parseResult.errors.length > 0) {
@@ -114,14 +159,18 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
-    // Support both Portuguese and old English headers
-    const categoryName = row.categoria || row.categoryid;
-    const cityName = row['cidade/local'] || row.city;
-    const codeId = row['codigoid'] || row.codeid;
-    const name = row.nome || row.name;
-    const value = row.valor || row.value;
-    const observation = row.observacao || row.observation;
+    // Normalize keys of the row object
+    const normalizedRow = Object.keys(row).reduce((acc, key) => {
+      acc[key.trim().toLowerCase().replace(/\s+/g, '')] = row[key];
+      return acc;
+    }, {} as Record<string, string>);
 
+    const categoryName = normalizedRow.categoria;
+    const cityName = normalizedRow['cidade/local'];
+    const codeId = normalizedRow.codigoid;
+    const name = normalizedRow.nome;
+    const value = normalizedRow.valor;
+    const observation = normalizedRow.observacao;
 
     const categoryId = categoryName ? categoryMap.get(categoryName.trim().toLowerCase()) : undefined;
     const cityId = cityName ? locationMap.get(cityName.trim().toLowerCase()) : undefined;
@@ -173,4 +222,60 @@ export async function importAssetsFromCsv(csvContent: string, userId: string, us
     failed: rows.length - assetsToCreate.length,
     errors: errors.slice(0, 10), // Limit to 10 errors to not overload the UI
   };
+}
+
+export async function deactivateAssetsInBatch(assetIds: string[], userId: string, userDisplayName: string) {
+    const { firestore } = await initializeFirebase();
+    const batch = firestore.batch();
+    const now = Timestamp.now();
+
+    const assetsRef = firestore.collection('assets');
+    const assetsToUpdate = await assetsRef.where('__name__', 'in', assetIds).get();
+
+    assetsToUpdate.forEach(doc => {
+        batch.update(doc.ref, { status: 'inativo', updatedAt: now });
+
+        const historyRef = firestore.collection('history').doc();
+        batch.set(historyRef, {
+            assetId: doc.id,
+            assetName: doc.data().name,
+            codeId: doc.data().codeId,
+            action: "Desativado",
+            details: "Item foi movido para a lixeira em lote.",
+            userId,
+            userDisplayName,
+            timestamp: now,
+        });
+    });
+
+    await batch.commit();
+    return assetsToUpdate.size;
+}
+
+export async function reactivateAssetsInBatch(assetIds: string[], userId: string, userDisplayName: string) {
+    const { firestore } = await initializeFirebase();
+    const batch = firestore.batch();
+    const now = Timestamp.now();
+
+    const assetsRef = firestore.collection('assets');
+    const assetsToUpdate = await assetsRef.where('__name__', 'in', assetIds).get();
+
+    assetsToUpdate.forEach(doc => {
+        batch.update(doc.ref, { status: 'ativo', updatedAt: now });
+
+        const historyRef = firestore.collection('history').doc();
+        batch.set(historyRef, {
+            assetId: doc.id,
+            assetName: doc.data().name,
+            codeId: doc.data().codeId,
+            action: "Reativado",
+            details: "Item foi restaurado da lixeira em lote.",
+            userId,
+            userDisplayName,
+            timestamp: now,
+        });
+    });
+
+    await batch.commit();
+    return assetsToUpdate.size;
 }

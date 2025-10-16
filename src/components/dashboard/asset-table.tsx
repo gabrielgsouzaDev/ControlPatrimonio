@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { SortConfig } from "./dashboard-client";
 import { format } from 'date-fns';
 import { Timestamp } from "firebase/firestore";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AssetTableProps {
   assets: Asset[];
@@ -29,9 +30,11 @@ interface AssetTableProps {
   onDelete: (asset: Asset) => void;
   sortConfig: SortConfig | null;
   requestSort: (key: keyof Asset) => void;
+  selectedAssets: Record<string, boolean>;
+  setSelectedAssets: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
-export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }: AssetTableProps) {
+export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort, selectedAssets, setSelectedAssets }: AssetTableProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -54,12 +57,44 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'dd/MM/yyyy HH:mm');
   };
-  
+
+  const handleSelectAll = (checked: boolean) => {
+    const newSelectedAssets: Record<string, boolean> = {};
+    if (checked) {
+      assets.forEach(asset => {
+        newSelectedAssets[asset.id] = true;
+      });
+    }
+    setSelectedAssets(newSelectedAssets);
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedAssets(prev => {
+      const newSelected = { ...prev };
+      if (checked) {
+        newSelected[id] = true;
+      } else {
+        delete newSelected[id];
+      }
+      return newSelected;
+    });
+  };
+
+  const isAllSelected = assets.length > 0 && assets.every(asset => selectedAssets[asset.id]);
+
   return (
     <div className="overflow-x-auto">
         <Table>
         <TableHeader>
             <TableRow>
+            <TableHead padding="checkbox" className="w-[60px] sticky left-0 bg-card z-20">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                aria-label="Selecionar todos"
+                className="translate-y-[2px] ml-4"
+              />
+            </TableHead>
             <TableHead className="min-w-[150px]">
                 <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4">
                 Nome {getSortIcon('name')}
@@ -89,13 +124,21 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
         <TableBody>
             {assets.length === 0 ? (
             <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                 Nenhum item encontrado.
                 </TableCell>
             </TableRow>
             ) : (
             assets.map((asset) => (
-                <TableRow key={asset.id}>
+                <TableRow key={asset.id} data-state={selectedAssets[asset.id] ? 'selected' : undefined}>
+                <TableCell padding="checkbox" className="sticky left-0 bg-card data-[state=selected]:bg-muted z-20">
+                  <Checkbox
+                    checked={selectedAssets[asset.id] || false}
+                    onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
+                    aria-label={`Selecionar ${asset.name}`}
+                    className="translate-y-[2px] ml-4"
+                  />
+                </TableCell>
                 <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                 <TableCell>
                     <Badge variant="outline">{asset.codeId}</Badge>
@@ -107,7 +150,7 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(asset.updatedAt)}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{asset.observation || "-"}</TableCell>
-                <TableCell className="sticky right-0 bg-card z-10 text-center">
+                <TableCell className="sticky right-0 bg-card data-[state=selected]:bg-muted z-10 text-center">
                     <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
