@@ -13,8 +13,7 @@ import { z } from 'zod';
 
 const ChartDataSchema = z.array(z.object({
     name: z.string(),
-    value: z.number().optional(),
-    count: z.number().optional(),
+    value: z.number(),
 }));
 
 // Define o esquema de entrada para o fluxo de IA
