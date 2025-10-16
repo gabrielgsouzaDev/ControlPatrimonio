@@ -34,8 +34,8 @@ export default function PropostaPage() {
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Sistema de autenticação</li>
                         <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Tela de gestão de patrimônio (CRUD)</li>
-                        <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Filtros e busca</li>
-                        <li className="flex items-center gap-2"><Check className="text-green-500 w-4 h-4"/>Gestão de Categorias e Locais</li>
+                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Filtros e busca</li>
+                        <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Gestão de Categorias e Locais</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Painel de controle (dashboard)</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Gráficos e relatórios visuais</li>
                         <li className="flex items-center gap-2"><X className="text-destructive w-4 h-4"/>Histórico detalhado de alterações</li>
@@ -175,5 +175,7 @@ export default function PropostaPage() {
     </div>
   );
 }
+
+    
 
     
