@@ -68,7 +68,12 @@ export default function PropostaPage() {
         {/* Header */}
         <header className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight">Proposta de Desenvolvimento</h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">Uma solução sob medida para a gestão de patrimônio, transformando dados em decisões inteligentes.</p>
+          <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">Uma solução sob medida para a gestão de patrimônio, transformando dados em decisões inteligentes.</p>
+          <div className="flex justify-center mt-6">
+            <Badge variant="secondary" className="text-base font-normal py-2 px-4 border-dashed border-primary/50 bg-primary/10 text-primary-foreground">
+                <Star className="w-4 h-4 mr-2 text-primary" />O projeto já foi concluído e encontra-se pronto para apresentação e eventuais ajustes finais.
+            </Badge>
+          </div>
         </header>
 
         {/* Pricing Section */}
@@ -76,11 +81,6 @@ export default function PropostaPage() {
           {plans.map((plan) => (
             <Card key={plan.name} className={`flex flex-col h-full ${plan.isFeatured ? 'border-primary ring-2 ring-primary shadow-lg' : ''}`}>
               <CardHeader className="text-center pb-4">
-                {plan.isFeatured && (
-                   <div className="flex justify-center">
-                    <Badge variant="default" className="text-sm mb-2">Recomendado</Badge>
-                   </div>
-                )}
                 <CardTitle className="text-3xl font-headline">{plan.name}</CardTitle>
                 <CardDescription className="px-4">{plan.description}</CardDescription>
               </CardHeader>
@@ -236,3 +236,5 @@ export default function PropostaPage() {
     </div>
   );
 }
+
+    
