@@ -125,9 +125,6 @@ export default function PropostaPage() {
                     <p className="text-sm text-muted-foreground mt-1">Receba o projeto completo para hospedar e modificar por conta própria.</p>
                     <p className="text-lg font-bold mt-2">+ R$ {plan.sourceCodePrice},00</p>
                 </div>
-                <Button className="w-full" variant={plan.isFeatured ? 'default' : 'outline'}>
-                  Selecionar Plano {plan.name}
-                </Button>
               </CardFooter>
             </Card>
           ))}
