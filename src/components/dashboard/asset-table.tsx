@@ -23,6 +23,7 @@ import { SortConfig } from "./dashboard-client";
 import { format } from 'date-fns';
 import { Timestamp } from "firebase/firestore";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface AssetTableProps {
   assets: Asset[];
@@ -32,9 +33,10 @@ interface AssetTableProps {
   requestSort: (key: keyof Asset) => void;
   selectedAssets: Record<string, boolean>;
   setSelectedAssets: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  isSelectionMode: boolean;
 }
 
-export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort, selectedAssets, setSelectedAssets }: AssetTableProps) {
+export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort, selectedAssets, setSelectedAssets, isSelectionMode }: AssetTableProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -87,13 +89,15 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort, 
         <Table>
         <TableHeader>
             <TableRow>
-            <TableHead padding="checkbox" className="w-[60px] sticky left-0 bg-card z-20">
-              <Checkbox
-                checked={isAllSelected}
-                onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                aria-label="Selecionar todos"
-                className="translate-y-[2px] ml-4"
-              />
+            <TableHead className={cn("transition-all duration-300 sticky left-0 bg-card z-20", isSelectionMode ? "w-[60px] p-4" : "w-0 p-0")}>
+              {isSelectionMode && (
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                  aria-label="Selecionar todos"
+                  className="translate-y-[2px]"
+                />
+              )}
             </TableHead>
             <TableHead className="min-w-[150px]">
                 <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4">
@@ -131,13 +135,15 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort, 
             ) : (
             assets.map((asset) => (
                 <TableRow key={asset.id} data-state={selectedAssets[asset.id] ? 'selected' : undefined}>
-                <TableCell padding="checkbox" className="sticky left-0 bg-card data-[state=selected]:bg-muted z-20">
-                  <Checkbox
-                    checked={selectedAssets[asset.id] || false}
-                    onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
-                    aria-label={`Selecionar ${asset.name}`}
-                    className="translate-y-[2px] ml-4"
-                  />
+                <TableCell className={cn("transition-all duration-300 sticky left-0 bg-card data-[state=selected]:bg-muted z-20", isSelectionMode ? "w-[60px] p-4" : "w-0 p-0")}>
+                  {isSelectionMode && (
+                    <Checkbox
+                      checked={selectedAssets[asset.id] || false}
+                      onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
+                      aria-label={`Selecionar ${asset.name}`}
+                      className="translate-y-[2px]"
+                    />
+                  )}
                 </TableCell>
                 <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                 <TableCell>

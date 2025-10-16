@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin, Upload, Trash2 } from "lucide-react";
+import { Download, PlusCircle, Loader2, Search, Settings, FileSpreadsheet, FileText, MapPin, Upload, Trash2, CheckSquare, X } from "lucide-react";
 import { AssetTable } from "./asset-table";
 import {
   Dialog,
@@ -69,6 +69,7 @@ export default function DashboardClient() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   
   const assetsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'assets') : null), [firestore]);
   const categoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'categories') : null), [firestore]);
@@ -201,6 +202,7 @@ export default function DashboardClient() {
         const count = await deactivateAssetsInBatch(selectedAssetIds, user.uid, user.displayName || 'Usuário');
         toast({ title: "Sucesso", description: `${count} ${count === 1 ? 'item movido' : 'itens movidos'} para a lixeira.` });
         setSelectedAssets({});
+        setIsSelectionMode(false);
       } catch (error: any) {
         toast({ variant: "destructive", title: "Erro ao Desativar", description: "Não foi possível mover os itens selecionados."});
       } finally {
@@ -250,6 +252,12 @@ export default function DashboardClient() {
       }
     });
   };
+  
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedAssets({});
+  };
+
 
   if (isLoadingAssets || isLoadingCategories || isLoadingLocations) {
     return (
@@ -299,55 +307,65 @@ export default function DashboardClient() {
             </Select>
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2">
-            {selectedAssetIds.length > 0 ? (
-                 <Button
-                    variant="destructive"
-                    onClick={() => setDialogState({ type: 'delete-many', assets: [] })}
-                    className="w-full sm:w-auto"
-                    disabled={isPending}
-                >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Desativar ({selectedAssetIds.length})
-                </Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setDialogState({ type: "import" })} className="w-full sm:w-auto">
-                  <Upload className="h-4 w-4 mr-2" />
-                  <span>Importar</span>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" disabled={isPending} className="w-full sm:w-auto">
-                      <Download className="h-4 w-4 mr-2" />
-                      <span>Exportar</span>
+            <div className="flex w-full sm:w-auto gap-2">
+              <Button variant="outline" onClick={() => setDialogState({ type: "import" })} className="flex-1 sm:flex-initial">
+                <Upload className="h-4 w-4 mr-2" />
+                <span>Importar</span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" disabled={isPending} className="flex-1 sm:flex-initial">
+                    <Download className="h-4 w-4 mr-2" />
+                    <span>Exportar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCsv}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    <span>Exportar para CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPdf}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>Exportar para PDF</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            <div className="hidden sm:flex border-l border-border h-6 mx-2" />
+
+            <div className="flex w-full sm:w-auto gap-2">
+              <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais" className="flex-1 sm:flex-none">
+                  <MapPin className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias" className="flex-1 sm:flex-none">
+                  <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="w-full sm:w-auto sm:ml-auto flex gap-2">
+                {isSelectionMode ? (
+                  <>
+                    <Button variant="destructive" onClick={() => setDialogState({ type: 'delete-many', assets: [] })} disabled={selectedAssetIds.length === 0}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Desativar ({selectedAssetIds.length})
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleExportCsv}>
-                      <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      <span>Exportar para CSV</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportPdf}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Exportar para PDF</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <div className="flex w-full sm:w-auto gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-locations" })} aria-label="Gerenciar Locais" className="flex-1 sm:flex-none">
-                        <MapPin className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={toggleSelectionMode}>
+                      <X className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => setDialogState({ type: "manage-categories" })} aria-label="Gerenciar Categorias" className="flex-1 sm:flex-none">
-                        <Settings className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={toggleSelectionMode}>
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Selecionar
                     </Button>
-                </div>
-              </>
-            )}
-            <div className="w-full sm:w-auto sm:ml-auto">
-                <Button onClick={() => setDialogState({ type: "add" })} className="w-full sm:w-auto">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                     <span>Adicionar Item</span>
-                </Button>
+                    <Button onClick={() => setDialogState({ type: "add" })}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        <span>Adicionar Item</span>
+                    </Button>
+                  </>
+                )}
             </div>
         </div>
       </div>
@@ -361,6 +379,7 @@ export default function DashboardClient() {
             requestSort={requestSort}
             selectedAssets={selectedAssets}
             setSelectedAssets={setSelectedAssets}
+            isSelectionMode={isSelectionMode}
             />
       </div>
       

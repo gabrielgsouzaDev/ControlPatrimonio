@@ -5,7 +5,7 @@ import { useState, useMemo, useTransition } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { Asset, Category } from '@/lib/types';
-import { Loader2, History, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, History, Search, ArrowUp, ArrowDown, CheckSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { reactivateAssetsInBatch } from '@/lib/actions';
+import { cn } from '@/lib/utils';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -47,6 +48,7 @@ export default function LixeiraPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selectedAssets, setSelectedAssets] = useState<Record<string, boolean>>({});
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const assetsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'assets') : null),
@@ -151,6 +153,7 @@ export default function LixeiraPage() {
         const count = await reactivateAssetsInBatch(selectedAssetIds, user.uid, user.displayName || 'Usuário');
         toast({ title: "Sucesso", description: `${count} ${count === 1 ? 'item foi reativado' : 'itens foram reativados'}.` });
         setSelectedAssets({});
+        setIsSelectionMode(false);
       } catch (error: any) {
         toast({ variant: "destructive", title: "Erro ao Reativar", description: "Não foi possível reativar os itens selecionados."});
       } finally {
@@ -161,6 +164,11 @@ export default function LixeiraPage() {
 
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+  
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedAssets({});
   };
 
   const getSortIcon = () => {
@@ -242,14 +250,24 @@ export default function LixeiraPage() {
                 ))}
               </SelectContent>
             </Select>
-            {selectedAssetIds.length > 0 && (
-              <div className="flex justify-end w-full sm:w-auto">
-                <Button onClick={() => setAssetsToReactivate(processedAssets.filter(a => selectedAssetIds.includes(a.id)))} disabled={isPending}>
-                  <History className="mr-2 h-4 w-4" />
-                  Reativar ({selectedAssetIds.length})
+            <div className="w-full sm:w-auto sm:ml-auto flex gap-2">
+              {isSelectionMode ? (
+                <>
+                  <Button onClick={() => setAssetsToReactivate(processedAssets.filter(a => selectedAssetIds.includes(a.id)))} disabled={selectedAssetIds.length === 0}>
+                    <History className="mr-2 h-4 w-4" />
+                    Reativar ({selectedAssetIds.length})
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={toggleSelectionMode}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={toggleSelectionMode}>
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  Selecionar
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
         </div>
 
 
@@ -258,13 +276,15 @@ export default function LixeiraPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead padding="checkbox" className="w-[60px] sticky left-0 bg-card z-20">
-                      <Checkbox
-                        checked={isAllSelected}
-                        onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                        aria-label="Selecionar todos"
-                        className="translate-y-[2px] ml-4"
-                      />
+                    <TableHead className={cn("transition-all duration-300 sticky left-0 bg-card z-20", isSelectionMode ? "w-[60px] p-4" : "w-0 p-0")}>
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                          aria-label="Selecionar todos"
+                          className="translate-y-[2px]"
+                        />
+                      )}
                     </TableHead>
                     <TableHead className="min-w-[150px]">Nome</TableHead>
                     <TableHead className="min-w-[120px]">Código ID</TableHead>
@@ -287,13 +307,15 @@ export default function LixeiraPage() {
                     ) : (
                     processedAssets.map(asset => (
                         <TableRow key={asset.id} data-state={selectedAssets[asset.id] ? 'selected' : undefined}>
-                        <TableCell className="sticky left-0 bg-card data-[state=selected]:bg-muted z-20">
-                           <Checkbox
-                            checked={selectedAssets[asset.id] || false}
-                            onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
-                            aria-label={`Selecionar ${asset.name}`}
-                            className="translate-y-[2px] ml-4"
-                          />
+                        <TableCell className={cn("transition-all duration-300 sticky left-0 bg-card data-[state=selected]:bg-muted z-20", isSelectionMode ? "w-[60px] p-4" : "w-0 p-0")}>
+                           {isSelectionMode && (
+                             <Checkbox
+                              checked={selectedAssets[asset.id] || false}
+                              onCheckedChange={(checked) => handleSelectOne(asset.id, Boolean(checked))}
+                              aria-label={`Selecionar ${asset.name}`}
+                              className="translate-y-[2px]"
+                            />
+                           )}
                         </TableCell>
                         <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                         <TableCell>
