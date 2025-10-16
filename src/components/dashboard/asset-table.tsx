@@ -56,83 +56,85 @@ export function AssetTable({ assets, onEdit, onDelete, sortConfig, requestSort }
   };
   
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('name')}>
-              Nome {getSortIcon('name')}
-            </Button>
-          </TableHead>
-          <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('codeId')}>
-              Código ID {getSortIcon('codeId')}
-            </Button>
-          </TableHead>
-          <TableHead>Categoria</TableHead>
-          <TableHead>Cidade/Local</TableHead>
-          <TableHead className="text-right">
-             <Button variant="ghost" onClick={() => requestSort('value')}>
-              Valor {getSortIcon('value')}
-            </Button>
-          </TableHead>
-          <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('updatedAt')}>
-              Última Modificação {getSortIcon('updatedAt')}
-            </Button>
-          </TableHead>
-          <TableHead>Observação</TableHead>
-          <TableHead className="sticky right-0 bg-card z-10 text-center">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {assets.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={8} className="h-24 text-center">
-              Nenhum item encontrado.
-            </TableCell>
-          </TableRow>
-        ) : (
-          assets.map((asset) => (
-            <TableRow key={asset.id}>
-              <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
-              <TableCell>
-                <Badge variant="outline">{asset.codeId}</Badge>
-              </TableCell>
-              <TableCell className="whitespace-nowrap">{asset.category}</TableCell>
-              <TableCell className="whitespace-nowrap">{asset.city}</TableCell>
-              <TableCell className="text-right whitespace-nowrap">
-                {formatCurrency(asset.value)}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">{formatDate(asset.updatedAt)}</TableCell>
-              <TableCell className="max-w-[200px] truncate">{asset.observation || "-"}</TableCell>
-              <TableCell className="sticky right-0 bg-card z-10 text-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Abrir menu</span>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(asset)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      <span>Editar</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onDelete(asset)}
-                      className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      <span>Desativar</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <div className="overflow-x-auto">
+        <Table>
+        <TableHeader>
+            <TableRow>
+            <TableHead className="min-w-[150px]">
+                <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4">
+                Nome {getSortIcon('name')}
+                </Button>
+            </TableHead>
+            <TableHead className="min-w-[120px]">
+                <Button variant="ghost" onClick={() => requestSort('codeId')} className="-ml-4">
+                Código ID {getSortIcon('codeId')}
+                </Button>
+            </TableHead>
+            <TableHead className="min-w-[150px]">Categoria</TableHead>
+            <TableHead className="min-w-[150px]">Cidade/Local</TableHead>
+            <TableHead className="text-right min-w-[150px]">
+                <Button variant="ghost" onClick={() => requestSort('value')} className="justify-end w-full -mr-4">
+                Valor {getSortIcon('value')}
+                </Button>
+            </TableHead>
+            <TableHead className="min-w-[200px]">
+                <Button variant="ghost" onClick={() => requestSort('updatedAt')} className="-ml-4">
+                Última Modificação {getSortIcon('updatedAt')}
+                </Button>
+            </TableHead>
+            <TableHead className="min-w-[200px]">Observação</TableHead>
+            <TableHead className="sticky right-0 bg-card z-10 text-center">Ações</TableHead>
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+            {assets.length === 0 ? (
+            <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center">
+                Nenhum item encontrado.
+                </TableCell>
+            </TableRow>
+            ) : (
+            assets.map((asset) => (
+                <TableRow key={asset.id}>
+                <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
+                <TableCell>
+                    <Badge variant="outline">{asset.codeId}</Badge>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{asset.category}</TableCell>
+                <TableCell className="whitespace-nowrap">{asset.city}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                    {formatCurrency(asset.value)}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{formatDate(asset.updatedAt)}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{asset.observation || "-"}</TableCell>
+                <TableCell className="sticky right-0 bg-card z-10 text-center">
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Abrir menu</span>
+                        <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(asset)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Editar</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                        onClick={() => onDelete(asset)}
+                        className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+                        >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Desativar</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                </TableCell>
+                </TableRow>
+            ))
+            )}
+        </TableBody>
+        </Table>
+    </div>
   );
 }

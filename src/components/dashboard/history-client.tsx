@@ -120,7 +120,7 @@ export default function HistoryClient() {
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <h2 className="text-3xl font-headline tracking-tight">
             Histórico de Alterações
@@ -189,9 +189,7 @@ export default function HistoryClient() {
         </div>
       </div>
       <div className="mt-4 rounded-lg border shadow-sm">
-        <div className="overflow-x-auto">
-          <HistoryTable history={filteredHistory || []} />
-        </div>
+        <HistoryTable history={filteredHistory || []} />
       </div>
     </>
   );

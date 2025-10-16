@@ -316,15 +316,13 @@ export default function DashboardClient({ initialAssets, initialCategories }: { 
       </div>
 
       <div className="mt-4 rounded-lg border shadow-sm">
-        <div className="overflow-x-auto">
-            <AssetTable
+        <AssetTable
             assets={sortedAndFilteredAssets}
             onEdit={(asset) => setDialogState({ type: "edit", asset })}
             onDelete={(asset) => setDialogState({ type: "delete", asset })}
             sortConfig={sortConfig}
             requestSort={requestSort}
             />
-        </div>
       </div>
       
       {/* Add/Edit Dialog */}

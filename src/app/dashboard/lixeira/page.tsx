@@ -204,10 +204,10 @@ export default function LixeiraPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Código ID</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>
+                    <TableHead className="min-w-[150px]">Nome</TableHead>
+                    <TableHead className="min-w-[120px]">Código ID</TableHead>
+                    <TableHead className="min-w-[150px]">Categoria</TableHead>
+                    <TableHead className="min-w-[200px]">
                         <Button variant="ghost" onClick={toggleSortDirection} className="-ml-4">
                            Última Modificação {getSortIcon()}
                         </Button>
@@ -275,4 +275,3 @@ export default function LixeiraPage() {
     </>
   );
 }
-
