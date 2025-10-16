@@ -52,21 +52,7 @@ export default function DashboardPage() {
 
   const dashboardData = useMemo(() => {
     if (!assets || !categories || !locations || !history) {
-      return {
-        totalAssets: 0,
-        totalValue: 0,
-        totalCities: 0,
-        createdLastMonth: 0,
-        updatedLastMonth: 0,
-        deletedLastMonth: 0,
-        valueByCityChart: [],
-        valueByCategoryChart: [],
-        itemsByCategoryChart: [],
-        itemsByCityChart: [],
-        createdChart: [],
-        updatedChart: [],
-        deletedChart: [],
-      };
+      return null;
     }
     
     const activeAssets = assets.filter(asset => asset.status !== 'inativo');
@@ -170,6 +156,7 @@ export default function DashboardPage() {
   };
   
   const handleExportCsv = () => {
+    if (!dashboardData) return;
     startTransition(async () => {
         try {
             const csvString = await exportDashboardToCsv(dashboardData.valueByCityChart, dashboardData.valueByCategoryChart);
@@ -194,6 +181,7 @@ export default function DashboardPage() {
   }
 
   const handleExportPdf = () => {
+    if (!dashboardData) return;
     startTransition(() => {
       try {
         exportDashboardToPdf(dashboardData.valueByCityChart, dashboardData.valueByCategoryChart);
@@ -212,6 +200,7 @@ export default function DashboardPage() {
   };
 
   const renderActiveChart = () => {
+    if (!dashboardData) return null;
     switch (activeChart) {
       case 'totalValue':
         return (
@@ -338,7 +327,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory) {
+  if (isLoadingAssets || isLoadingCategories || isLoadingLocations || isLoadingHistory || !dashboardData) {
     return (
         <div className="flex h-[80vh] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
